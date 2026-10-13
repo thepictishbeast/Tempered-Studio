@@ -177,19 +177,34 @@
   /* freshDocview and ↑ Top park keyboard focus on the view itself: a reading
      position for the next Tab, not a control, so no ring round the whole column. */
   #docview:focus { outline:none; }
-  .docview h1 { font-size:25px; font-weight:700; letter-spacing:-.015em; line-height:1.2; margin:4px 0 16px; }
-  .docview h2 { font-size:17.5px; font-weight:600; line-height:1.3; margin:26px 0 9px; }
-  .docview h3 { font-size:13.5px; color:var(--fg-dim); letter-spacing:.04em; margin:18px 0 6px; }
-  .docview p { line-height:1.7; } .docview li { line-height:1.72; }
+  /* Headings scale with --read-scale (⋯ → Text size) like the prose under them:
+     fixed px left an h2 smaller than body text from 115% up. 1 = unchanged. */
+  .docview h1 { font-size:calc(25px * var(--read-scale)); font-weight:700; letter-spacing:-.015em; line-height:1.2; margin:4px 0 16px; }
+  .docview h2 { font-size:calc(17.5px * var(--read-scale)); font-weight:600; line-height:1.3; margin:26px 0 9px; }
+  .docview h3 { font-size:calc(13.5px * var(--read-scale)); color:var(--fg-dim); letter-spacing:.04em; margin:18px 0 6px; }
+  /* × --read-lh (⋯ → Spacing; 1 = as tuned). The lesson drawer reads the same
+     prose, so it gets the same rhythm (it was left at the browser's tight default). */
+  .docview p, .ldrawer-body p { line-height:calc(1.7 * var(--read-lh)); } .docview li, .ldrawer-body li { line-height:calc(1.72 * var(--read-lh)); }
   /* Prose rhythm for the reading surfaces (lessons / book / quizzes / glossary).
      15.5px body + a ~78ch measure (680px column) reads far easier than the old
      14.6px at ~95ch — a beginner spends a lot of time on this text. */
   /* Reading size (Paul 2026-07-07, #41 readability): all long-form reading text
-     — the Book, lessons, the lesson drawer — scales with --read-scale, set from
-     the ⋯ menu's A− / A+ control and persisted. Default 1 = the tuned 15.5px. */
+     — the Book, lessons, the lesson drawer, and in Practice the task, code,
+     output, Tutor and Insights — scales with --read-scale, set from the ⋯
+     menu's A− / A+ control and persisted. Default 1 = the tuned 15.5px. The
+     editor toolbar keeps its size: on a phone it is one compact row. */
   :root { --read-scale: 1; }
   .bookbody { font-size:calc(15.5px * var(--read-scale)); }
-  .bookbody p { margin:0 0 13px; }
+  .bookbody p { margin:0 0 calc(13px * var(--read-lh)); }
+  /* Spacing (⋯ → Spacing): more room between lines, words and letters in the
+     reading text, the part of "easy reading" with evidence behind it (wider
+     letter spacing helps dyslexic readers: Zorzi et al., PNAS 2012). No word
+     spacing in code: rustc's ^^^ markers line up by character. */
+  :root { --read-lh: 1; --read-ls: normal; --read-ws: normal; }
+  html[data-spacing="1"] { --read-lh: 1.15; --read-ls: .03em; --read-ws: .1em; }
+  html[data-spacing="2"] { --read-lh: 1.3; --read-ls: .06em; --read-ws: .16em; }
+  .bookbody, .lesson p, .lesson .sub, .glossbox, .predict-done, .bref { letter-spacing:var(--read-ls); word-spacing:var(--read-ws); }
+  .bookbody pre { word-spacing:normal; }
   .bookbody > :first-child { margin-top:0; }
   /* Reading-size stepper in the ⋯ menu. */
   .readsize { display:inline-flex; align-items:center; gap:6px; }
@@ -206,7 +221,7 @@
      bg + default monospace, and unstyled code blocks / Run+Copy buttons. */
   .docview code, .ldrawer-body code { background:var(--bg-3); padding:1.5px 5px; border-radius:5px; font-family:var(--mono); font-size:0.86em; }
   .docview pre, .ldrawer-body pre { background:var(--bg-3); border:1px solid var(--line); padding:13px 15px; border-radius:9px; overflow:auto; margin:12px 0; line-height:1.55; }
-  .docview pre code, .ldrawer-body pre code { background:none; padding:0; border-radius:0; font-size:12.5px; white-space:pre; }
+  .docview pre code, .ldrawer-body pre code { background:none; padding:0; border-radius:0; font-size:calc(12.5px * var(--read-scale)); white-space:pre; }
   /* token highlighting for rendered Rust code blocks (escape-then-tokenize) */
   .docview pre code .tok-k, .ldrawer-body pre code .tok-k { color:var(--tok-k); }
   .docview pre code .tok-s, .ldrawer-body pre code .tok-s { color:var(--tok-s); }
@@ -224,17 +239,17 @@
   .editor #editorHL .tok-n { color:var(--tok-n); }
   .editor #editorHL .tok-t { color:var(--tok-t); }
   .editor #editorHL .tok-m { color:var(--tok-m); }
-  .docview blockquote, .ldrawer-body blockquote { margin:10px 0; padding:6px 14px; border-left:3px solid var(--note); background:var(--bg-2); color:var(--fg-dim); border-radius:0 6px 6px 0; line-height:1.6; }
-  .docview ol { padding-left:22px; } .docview ol li { line-height:1.7; }
+  .docview blockquote, .ldrawer-body blockquote { margin:10px 0; padding:6px 14px; border-left:3px solid var(--note); background:var(--bg-2); color:var(--fg-dim); border-radius:0 6px 6px 0; line-height:calc(1.6 * var(--read-lh)); }
+  .docview ol { padding-left:22px; } .docview ol li { line-height:calc(1.7 * var(--read-lh)); }
   .docview a, .ldrawer-body a { color:var(--note); }
-  .docview h4 { font-size:12.5px; margin:12px 0 5px; } .docview h5, .docview h6 { font-size:12px; color:var(--fg-dim); margin:10px 0 4px; }
-  .docview table, .ldrawer-body table { border-collapse:collapse; margin:12px 0; font-size:12.5px; display:block; overflow-x:auto; }
+  .docview h4 { font-size:calc(12.5px * var(--read-scale)); margin:12px 0 5px; } .docview h5, .docview h6 { font-size:calc(12px * var(--read-scale)); color:var(--fg-dim); margin:10px 0 4px; }
+  .docview table, .ldrawer-body table { border-collapse:collapse; margin:12px 0; font-size:calc(12.5px * var(--read-scale)); display:block; overflow-x:auto; }
   .docview th, .docview td, .ldrawer-body th, .ldrawer-body td { border:1px solid var(--line); padding:5px 11px; text-align:left; }
   .docview thead th, .ldrawer-body thead th { background:var(--bg-3); font-weight:600; }
   /* Glossary tab term cards */
   .docview .gloss-term { border:1px solid var(--line); border-left:3px solid var(--accent); border-radius:8px; padding:11px 14px; margin:10px 0; }
   .docview .gloss-name { font-size:14px; color:var(--fg); margin:0 0 5px; letter-spacing:0; text-transform:none; }
-  .docview .gloss-def { line-height:1.6; margin:0; }
+  .docview .gloss-def { line-height:calc(1.6 * var(--read-lh)); margin:0; }
   /* Inline `code` inside glossary definitions (glossary view + tap-to-define popover
      + the Practice concept box) — the last two aren't in .docview, so style here. */
   .gloss-def code, .glosspop code, .gl-def code { background:var(--bg-3); padding:1px 5px;
@@ -293,7 +308,7 @@
   .ide-term.closed { display:none; }
   .ide-termbar { display:flex; align-items:center; gap:8px; font-size:11.5px; color:var(--fg-dim); }
   .docview .ideout { background:#0a0a0a; color:#e8e8e8; border:1px solid var(--line); border-radius:10px;
-    padding:12px 14px; font-family:var(--mono); font-size:12.6px; line-height:1.55;
+    padding:12px 14px; font-family:var(--mono); font-size:calc(12.6px * var(--read-scale)); line-height:1.55;
     white-space:pre-wrap; word-break:break-word; height:26vh; min-height:120px; overflow:auto; }
   .docview .ideout.err { color:#ffd9d0; }
   .docview .ideout .con-g { color:#36c46b; } .docview .ideout .con-r { color:#ff5c5c; }
@@ -385,7 +400,7 @@
   .docview .coderun-btn:hover:not(:disabled), .ldrawer-body .coderun-btn:hover:not(:disabled) { color:var(--fg); border-color:var(--accent); }
   .docview .coderun-btn:disabled, .ldrawer-body .coderun-btn:disabled { opacity:.55; cursor:default; }
   .docview .coderun-out, .ldrawer-body .coderun-out { background:#0a0a0a; color:#e8e8e8; border:1px solid var(--line); border-radius:8px;
-    padding:9px 12px; margin:9px 0 14px; font-family:var(--mono); font-size:12px; line-height:1.5;
+    padding:9px 12px; margin:9px 0 14px; font-family:var(--mono); font-size:calc(12px * var(--read-scale)); line-height:1.5;
     white-space:pre-wrap; word-break:break-word; max-height:30vh; overflow:auto; }
   .docview .coderun-out.err, .ldrawer-body .coderun-out.err { color:#ffd9d0; }
   /* 📋 Copy on code blocks (lessons/book) */
@@ -583,8 +598,8 @@
 
   .center { display:flex; flex-direction:column; min-height:0; }
   .lesson { padding:16px 20px; overflow:auto; }
-  .lesson h1 { font-size:22px; font-weight:700; margin:2px 0 7px; line-height:1.22; letter-spacing:-.02em; }
-  .lesson .sub { color:var(--fg-dim); font-size:12.5px; margin-bottom:9px; }
+  .lesson h1 { font-size:calc(22px * var(--read-scale)); font-weight:700; margin:2px 0 7px; line-height:1.22; letter-spacing:-.02em; }
+  .lesson .sub { color:var(--fg-dim); font-size:calc(12.5px * var(--read-scale)); margin-bottom:9px; }
   /* concept chip → tap for a glossary definition. Styled as a small tappable
      PILL rather than dotted-underline text: as plain underlined text next to the
      other metadata it was easy to miss, so learners never discovered the offline
@@ -598,7 +613,7 @@
   .gloss:hover, .gloss:focus-visible { color:var(--fg); border-color:var(--accent); background:var(--bg-2); outline:none; }
   .gloss.open { color:var(--fg); border-color:var(--accent); background:var(--bg-2); }
   .glossbox { margin:-4px 0 14px; padding:10px 13px; border:1px solid var(--line); border-left:3px solid var(--accent);
-    border-radius:8px; background:var(--bg-2); font-size:13px; line-height:1.5; }
+    border-radius:8px; background:var(--bg-2); font-size:calc(13px * var(--read-scale)); line-height:calc(1.5 * var(--read-lh)); }
   .gl-term { font-weight:700; color:var(--fg); text-transform:capitalize; }
   .gl-def { color:var(--fg); }
   .gl-foot { margin-top:7px; display:flex; align-items:center; gap:12px; flex-wrap:wrap; font-size:11.5px; color:var(--fg-dim); }
@@ -608,7 +623,7 @@
   .gl-x { margin-left:auto; cursor:pointer; color:var(--fg-dim); padding:0 4px; }
   .gl-x:hover { color:var(--fg); }
   .gl-x:focus-visible { color:var(--fg); outline:2px solid var(--accent); outline-offset:1px; border-radius:4px; }
-  .lesson p { line-height:1.6; font-size:14px; color:var(--fg); }
+  .lesson p { line-height:calc(1.6 * var(--read-lh)); font-size:calc(14px * var(--read-scale)); color:var(--fg); }
   .predict { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-top:10px; font-size:13px;
     border:1px solid transparent; border-radius:12px; padding:4px; transition:all .2s ease; }
   .predict .pl { color:var(--fg-dim); }
@@ -620,7 +635,7 @@
   .predict.needs-answer .pl { color:var(--accent); font-weight:700; }
   @keyframes predictPulse { 0%,100%{box-shadow:0 0 0 3px rgba(247,76,0,.10)} 50%{box-shadow:0 0 0 5px rgba(247,76,0,.22)} }
   .predict-prose { font-size:13px; margin:2px 0 0; color:var(--fg-dim); }
-  .predict-done { margin:8px 0 2px; padding:9px 14px; border-radius:10px; font-size:13.5px; font-weight:600;
+  .predict-done { margin:8px 0 2px; padding:9px 14px; border-radius:10px; font-size:calc(13.5px * var(--read-scale)); font-weight:600;
     color:var(--done); background:rgba(126,211,33,.08); border:1px solid rgba(126,211,33,.3); }
   /* The "change" link had no colour of its own, so it took the UA's #0000EE (#551A8B
      once visited): 2.0:1 / 1.7:1 on the dark theme's tinted bar. --note: 7.8:1 / 5.0:1. */
@@ -634,7 +649,8 @@
      home for any small white-on-orange element; see its definition in :root. */
   .modesw button.sel { background:var(--accent-deep); color:#fff; }
   /* ⋯ app menu — a dropdown sheet anchored top-right. Holds the editor mode +
-     quick jumps that don't need to sit on-screen all the time (Paul). */
+     quick jumps that don't need to sit on-screen all the time (Paul), plus the
+     reading settings and help. It scrolls on a screen too short to show it all. */
   .appmenu{position:fixed;top:52px;right:12px;z-index:120;width:236px;max-width:calc(100vw - 24px);
     background:var(--bg-2);border:1px solid var(--line);border-radius:12px;box-shadow:0 16px 48px rgba(0,0,0,.5);
     padding:8px;display:flex;flex-direction:column;gap:2px;
@@ -653,6 +669,8 @@
   .appmenu .menuitem:focus-visible{background:var(--bg-3);outline:2px solid var(--accent);outline-offset:-2px}
   .appmenu .modesw{display:flex;width:100%;margin:0}
   .appmenu .modesw button{flex:1;padding:9px 0;font-size:12px}
+  .appmenu .menurow{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 4px 6px;font-size:12.5px;color:var(--fg-dim)}
+  .appmenu .menucheck{display:flex;align-items:center;gap:8px}
   /* Left lesson DRAWER — slides in from the left over the editor, recedes to close. */
   .ldrawer-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:129;opacity:0;transition:opacity .28s}
   .ldrawer-overlay.open{opacity:1}
@@ -812,7 +830,7 @@
        BOTH themes, so light-theme fg-dim (#5b6776) failed contrast on it. */
     font-family:var(--mono);font-size:11.5px;color:#9aa7b4;flex:0 0 auto}
   .conout{flex:1;min-height:0;margin:0;padding:8px 10px;overflow:auto;overscroll-behavior:contain;
-    font:12.5px/1.5 var(--mono);color:#e6e6e6;background:transparent;white-space:pre-wrap;
+    font:calc(12.5px * var(--read-scale))/1.5 var(--mono);color:#e6e6e6;background:transparent;white-space:pre-wrap;
     overflow-wrap:anywhere;-webkit-user-select:text;user-select:text;-webkit-overflow-scrolling:touch}
   /* FIXED bright colours (the console bg is always #000, even in light theme —
      theme vars would flip dark here and fail contrast). Match the old xterm theme. */
@@ -916,11 +934,15 @@
   /* #e0a92e is 2.1:1 on the light card (large text needs 3:1); a deep gold keeps the cue (5.6:1+). */
   html[data-theme="light"] #celebrate.milestone .cg-h{color:#855800}
   #celebrate.milestone.show{animation:celebpop 3.6s ease forwards}
+  /* Reduced motion (the OS setting, or ⋯ → Reduce motion): show it, still. The
+     guard below forces every animation to .001ms, which jumped the old fade to
+     its opacity:0 end, so the popup never showed at all. JS removes .show. */
   @media (prefers-reduced-motion: reduce){
     /* Shown still, with no keyframes: the global guard below forces every animation
        to .001ms, which jumped the old fade straight to its opacity:0 end, so these
        learners never saw the popup at all. JS removes .show after 2.6s / 3.6s. */
     #celebrate.show,#celebrate.milestone.show{animation:none;opacity:1;transform:translateX(-50%)}}
+  html[data-motion="reduce"] #celebrate.show{animation:none;opacity:1;transform:translateX(-50%)}
   /* 🩺 Logs view */
   .docview .logbar{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:6px 0 12px}
   .docview .logtabs{display:flex;gap:5px;flex-wrap:wrap}
@@ -950,16 +972,16 @@
   .docview .libback{margin:0 0 10px}
   .docview .libback a{color:var(--accent);text-decoration:none;font-weight:600}
 
-  .diag { display:flex; align-items:flex-start; gap:9px; padding:10px 14px; border-bottom:1px solid var(--line); font-size:12.5px; }
+  .diag { display:flex; align-items:flex-start; gap:9px; padding:10px 14px; border-bottom:1px solid var(--line); font-size:calc(12.5px * var(--read-scale)); }
   .diag .lvl{font-family:var(--mono);font-weight:700}
   .diag.error .lvl{color:var(--error)} .diag.warn .lvl{color:var(--warn)} .diag.note .lvl{color:var(--note)}
-  .diag .msg small{display:block;color:var(--fg-dim);font-family:var(--mono);font-size:11px;margin-top:2px}
+  .diag .msg small{display:block;color:var(--fg-dim);font-family:var(--mono);font-size:calc(11px * var(--read-scale));margin-top:2px}
   /* the code (→ Explain) and the line number (→ jump the editor caret) are
      sibling buttons inside a plain row — no nested interactive roles. */
   .diag .diagcode,.diag .jumpline{cursor:pointer;border-radius:3px;border-bottom:1px dotted currentColor;transition:background .12s}
   .diag .diagcode:hover,.diag .jumpline:hover{background:var(--bg-2)}
   .diag .diagcode:focus-visible,.diag .jumpline:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
-  .bref{padding:10px 14px;font-size:12.5px;border-bottom:1px solid var(--line);cursor:pointer;transition:.12s}
+  .bref{padding:10px 14px;font-size:calc(12.5px * var(--read-scale));border-bottom:1px solid var(--line);cursor:pointer;transition:.12s}
   .bref:hover{background:var(--bg-2)} .bref .c{font-family:var(--mono);color:var(--note)} .bref small{display:block;color:var(--fg-dim);margin-top:2px}
 
   @keyframes fadein{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
@@ -969,6 +991,9 @@
   @media (prefers-reduced-motion: reduce){
     *,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important;scroll-behavior:auto!important}
   }
+  /* …and the same when chosen in the app (⋯ → Reduce motion): for a learner
+     whose device has no such setting, or who wants calm only here. */
+  html[data-motion="reduce"] *,html[data-motion="reduce"] *::before,html[data-motion="reduce"] *::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important;scroll-behavior:auto!important}
   .footer{position:fixed;bottom:0;left:0;right:0;display:flex;gap:18px;justify-content:center;
     padding:6px;background:var(--bg-2);border-top:1px solid var(--line);font-family:var(--mono);font-size:11px;color:var(--fg-dim)}
   .footer b{color:var(--fg)}
@@ -1070,7 +1095,7 @@
     /* ── Phone polish (Paul 2026-06-30: beautiful · simple · intuitive · capable) ── */
     .center { padding-bottom:6px; }
     .lesson { padding:16px 16px 4px; }
-    h1#lessonTitle { font-size:21px; line-height:1.22; }
+    h1#lessonTitle { font-size:calc(21px * var(--read-scale)); line-height:1.22; }
     .editor, .runrow { margin-left:14px; margin-right:14px; }
     /* Editor header: the Learn/Assist/Dev switcher was clipped to "Lea" and the
        "read & edit, then Run" label crammed the reset. Wrap cleanly: file + reset
@@ -1148,13 +1173,16 @@
     <button class="iconbtn" id="focusBtn" title="Focus mode — hide the exercise list for more room" aria-label="Toggle focus mode (hide the exercise list)" aria-pressed="false">◧</button>
     <button class="iconbtn" id="insightsBtn" title="Show/hide Insights (diagnostics, book refs &amp; tutor)" aria-label="Toggle the Insights panel" aria-expanded="false">▦</button>
     <button class="iconbtn" id="theme" title="Toggle dark/light">🌓</button>
-    <button class="iconbtn" id="menuBtn" title="Menu" aria-label="Open menu" aria-haspopup="true" aria-expanded="false" aria-controls="appmenu">⋯</button>
+    <button class="iconbtn" id="menuBtn" title="Menu" aria-label="Open menu" aria-expanded="false" aria-controls="appmenu">⋯</button>
   </header>
 
   <!-- The ⋯ menu (Paul): holds the things that don't need to be on-screen all the
        time — the editor mode (Learn/Assist/Dev, moved out of the editor bar to
-       free space) and quick jumps to the learning surfaces. -->
-  <div id="appmenu" class="appmenu" hidden role="menu" aria-label="Menu">
+       free space), quick jumps to the learning surfaces, reading settings and
+       help. A disclosure (button + group), NOT role=menu: it holds a mode switch
+       and steppers and has no arrow-key menu keys, so "menu" promised keys that
+       did nothing. Tab walks it; Esc closes it and puts focus back on ⋯. -->
+  <div id="appmenu" class="appmenu" hidden role="group" aria-label="Menu">
     <div class="menusec">
       <div class="menuh">Editor mode</div>
       <span class="modesw" id="modesw" role="group" aria-label="Editor mode">
@@ -1165,20 +1193,34 @@
     </div>
     <div class="menusec">
       <div class="menuh">Go to</div>
-      <button class="menuitem" data-goto="learn" role="menuitem">📚 Learn hub</button>
-      <button class="menuitem" data-goto="library" role="menuitem">📖 Textbooks</button>
-      <button class="menuitem" data-goto="glossary" role="menuitem">📔 Glossary</button>
-      <button class="menuitem" data-goto="cheatsheets" role="menuitem">📋 Cheat sheets</button>
-      <button class="menuitem" data-goto="sandbox" id="menuSandbox" role="menuitem">🧪 Sandbox</button>
-      <button class="menuitem" data-goto="ide" id="menuIde" role="menuitem">🛠 IDE</button>
+      <button class="menuitem" data-goto="learn">📚 Learn hub</button>
+      <button class="menuitem" data-goto="library">📖 Textbooks</button>
+      <button class="menuitem" data-goto="glossary">📔 Glossary</button>
+      <button class="menuitem" data-goto="cheatsheets">📋 Cheat sheets</button>
+      <button class="menuitem" data-goto="sandbox" id="menuSandbox">🧪 Sandbox</button>
+      <button class="menuitem" data-goto="ide" id="menuIde">🛠 IDE</button>
     </div>
     <div class="menusec">
-      <div class="menuh">Reading size</div>
+      <div class="menuh">Reading</div>
+      <div class="menurow">Text size
       <span class="readsize" role="group" aria-label="Reading text size">
         <button type="button" id="rsDown" class="rs-a-lo" title="Smaller reading text" aria-label="Smaller reading text">A−</button>
         <span class="rs-val" id="rsVal" aria-live="polite">100%</span>
         <button type="button" id="rsUp" class="rs-a-hi" title="Larger reading text" aria-label="Larger reading text">A+</button>
-      </span>
+      </span></div>
+      <div class="menurow">Spacing
+      <span class="readsize" role="group" aria-label="Space between lines, words and letters">
+        <button type="button" id="spDown" title="Less space between lines and words" aria-label="Less spacing">−</button>
+        <span class="rs-val" id="spVal" aria-live="polite">normal</span>
+        <button type="button" id="spUp" title="More space between lines and words" aria-label="More spacing">+</button>
+      </span></div>
+      <!-- The in-app twin of the OS "reduce motion" setting (html[data-motion]). -->
+      <label class="menuitem menucheck"><input type="checkbox" id="motionChk" /> Reduce motion</label>
+    </div>
+    <div class="menusec">
+      <div class="menuh">Help</div>
+      <button class="menuitem" type="button" data-goto="studyguide">📘 Study Guide</button>
+      <button class="menuitem" type="button" id="menuKeys">⌨️ Keyboard shortcuts</button>
     </div>
     <!-- The single-key shortcuts (r runs, h hints, b opens the Book …) can be
          switched off (WCAG 2.1.4): a slip of the keyboard, or a word from speech
@@ -1242,6 +1284,9 @@
              buttons, part of the editor, status tucked out of the way). -->
         <div class="etools">
           <button class="run" id="runbtn" title="Run (Ctrl/Cmd+Enter from the editor)">▷ Run</button>
+          <!-- After a pass the solved exercise stays on screen until you move on:
+               Next takes the place of Run and Check (the phone toolbar is one row). -->
+          <button class="run" id="nextbtn" type="button" title="Go on to the next exercise" aria-label="Next exercise" hidden>Next →</button>
           <button class="ghost ic" id="checkbtn" title="Check — type-check only" aria-label="Check (type-check only)">✓</button>
           <button class="ghost ic" id="explainbtn" title="Explain the error code" aria-label="Explain the error code">?</button>
           <button class="ghost ic" id="hintbtn" title="Hint" aria-label="Hint">💡</button>
@@ -1253,6 +1298,7 @@
           &nbsp; <span id="editorBar">main.rs</span>
           <span style="flex:1"></span>
           <span id="editstate" style="color:var(--fg-dim)">read &amp; edit, then Run</span>
+          <!-- a real button: a Tab stop that Enter/Space press (it was a click-only span) -->
           <button type="button" id="resetbtn" title="Restore the original starter code" style="cursor:pointer;color:var(--accent-soft);margin-left:12px;background:none;border:0;padding:0;font:inherit">↺ reset</button></div>
         <div class="editwrap">
           <!-- CodeMirror 6 mounts here (single-layer editor — replaces the old
@@ -1281,7 +1327,7 @@
       </div>
 
       <div class="terminal">
-        <div class="tbar"><button class="tfold" id="tfold" type="button" title="Collapse / expand the output" aria-label="Collapse or expand the output">▾</button><span class="throbber" id="throb">⠹</span> <span class="tbar-lbl">rpro · output</span><span style="flex:1"></span><button class="termcopy" id="termcopy" title="Copy the output (e.g. to share an error)">📋 copy</button></div>
+        <div class="tbar"><button class="tfold" id="tfold" type="button" title="Collapse / expand the output" aria-label="Collapse or expand the output">▾</button><span class="throbber" id="throb" aria-hidden="true"></span> <span class="tbar-lbl">rpro · output</span><span style="flex:1"></span><button class="termcopy" id="termcopy" title="Copy the output (e.g. to share an error)">📋 copy</button></div>
         <pre id="conout" class="conout" tabindex="0" aria-label="Compiler output — select any text to copy"></pre>
       </div>
     </section>
@@ -1317,13 +1363,18 @@
           <p><kbd>f</kbd> Focus (hide list)</p><p><kbd>i</kbd> Insights drawer</p><p><kbd>?</kbd> This help</p></div>
         <!-- Tab indents in the code editors, so say how to leave them (WCAG 2.1.2). -->
         <div><h3>Code editor</h3>
-          <p><kbd>Tab</kbd> Indent</p><p><kbd>Esc</kbd> then <kbd>Tab</kbd> Leave the editor</p><p><kbd>Ctrl+Enter</kbd> Run</p></div>
+          <p><kbd>Tab</kbd> Indent</p><p><kbd>Esc</kbd> then <kbd>Tab</kbd> Leave the editor</p><p><kbd>Ctrl/Cmd+Enter</kbd> Run</p></div>
       </div>
       <p class="keyshelp-foot">Press <kbd>?</kbd> or <kbd>Esc</kbd> to close. (Shortcuts pause while you're typing in the editor. You can switch them off in the ⋯ menu.)</p>
     </div>
   </div>
-  <!-- Read out as either code editor takes focus (aria-describedby on its content). -->
-  <span id="cmKeysHint" hidden>Tab indents the code. To leave the editor, press Escape, then Tab.</span>
+  <!-- Read out on entering either code editor (aria-describedby): Tab indents
+       there, so say how to leave it (WCAG 2.1.2). -->
+  <span id="cmKeysHint" hidden>Tab indents. To leave the editor, press Escape, then Tab.</span>
+  <!-- Copy feedback ("copied ✓" / "copy failed"), the only answer the 📋 copy
+       buttons give. A live region must exist before its first message or that
+       message is not read out, so it is here from the start; toast() reuses it. -->
+  <div id="toast" role="status"></div>
 
   <!-- In-page question box, driven by ask(). It replaces the browser's native
        alert/confirm/prompt, which block the page, read badly on phones and to
@@ -1815,7 +1866,8 @@
         { tag: [CM.tags.macroName, CM.tags.function(CM.tags.variableName), CM.tags.function(CM.tags.propertyName)], color: 'var(--tok-m)' },
       ]);
       const theme = CM.EditorView.theme({
-        '&': { background: 'transparent', color: 'var(--fg)', fontSize: '13px', height: '100%' },
+        // fontSize follows ⋯ → Text size (--read-scale), like the Practice editor.
+        '&': { background: 'transparent', color: 'var(--fg)', fontSize: 'calc(13px * var(--read-scale))', height: '100%' },
         '.cm-content': { fontFamily: 'var(--mono)', padding: '10px 0', caretColor: 'var(--accent)' },
         '.cm-scroller': { fontFamily: 'var(--mono)', lineHeight: '1.55', overflow: 'auto' },
         '.cm-gutters': { background: 'transparent', border: 'none', color: 'var(--fg-dim)' },
@@ -2363,6 +2415,7 @@
     // MainActivity.runViaTermux() compiles+runs the code with the phone's real
     // rustc (via an installed Termux) and calls this back asynchronously.
     let termuxPending = null;
+    let opBusy = false; // a run/check/explain is in flight (with termuxPending: spins the throbber)
     let termuxOp = 'run'; // which op fired the pending Termux call (run/check/test/explain)
     let termuxCode = ''; // the code a pending on-device Explain asked about (titles the drawer)
     const _runCbs = new Map(); // cbId -> onResult, for runnable code examples (free-play)
@@ -2435,15 +2488,7 @@
         let exsData = null;
         try { exsData = await fetch('api/exercises').then(r => r.json()); if (exsData) renderList(exsData); } catch (_) {}
         const completedPhase = curExercise ? String(curExercise).split('/')[0] : null;
-        if (advancedTo) {
-          let nextTitle = null;
-          try { const cur = await fetch('api/current').then(r => r.json()); renderCurrent(cur); nextTitle = cur && cur.title; } catch (_) {}
-          // renderCurrent cleared the old run, so the next exercise starts clean:
-          // just this note in the console, and the badge back to "ready".
-          term.writeln(g('✓ exercise complete — advancing to ' + (nextTitle || advancedTo)));
-          statusEl().textContent = 'ready';
-          if (!maybeCelebratePhase(exsData, completedPhase)) celebrate(advancedTo, nextTitle);
-        }
+        if (advancedTo) await holdForNext(advancedTo, exsData, completedPhase); // stays until Next →
       }
       // Gate ONCE per exercise (Paul): the prediction persists after a run so you
       // can edit + re-run freely; it only re-arms on the NEXT exercise (loadCurrent).
@@ -2460,9 +2505,47 @@
       try { setInsights(true); } catch (_) {}
     }
 
+    // A pass completes the exercise and the server moves on, but the page waits
+    // for the learner (WCAG 3.2.5, change on request): the solved code, the
+    // guess's result, the output and the Tutor's "what was the bug?" stay until
+    // Next →, which takes the place of Run and Check. Swapping the next exercise
+    // in at once hid all of that: a slow reader never saw "were you right?".
+    // Run/Check/Hint pause meanwhile: the server's current exercise is already
+    // the NEXT one, so they would act on it. Used by both run paths.
+    let nextHold = false;
+    function setNextHold(on) {
+      nextHold = on;
+      const nb = document.getElementById('nextbtn'); if (nb) nb.hidden = !on;
+      ['runbtn', 'checkbtn'].forEach(id => { const b = document.getElementById(id); if (b) b.hidden = on; });
+      const hb = document.getElementById('hintbtn'); if (hb && on) hb.disabled = true; // renderCurrent re-arms it
+    }
+    async function holdForNext(advancedTo, exsData, completedPhase) {
+      let nextTitle = null;
+      try { const cur = await fetch('api/current').then(r => r.json()); nextTitle = cur && cur.title; } catch (_) {}
+      setNextHold(true);
+      term.writeln(g('✓ exercise complete') + d(' — next up: ' + (nextTitle || advancedTo) + '. Press Next → when you’re ready.'));
+      // Run had focus and is hidden now: hand it to Next (typing in the editor keeps it).
+      if (!(document.activeElement && document.activeElement.closest('.cm-editor'))) {
+        document.getElementById('nextbtn')?.focus({ preventScroll: true });
+      }
+      // A completed phase is the bigger moment — else the usual exercise popup.
+      if (!maybeCelebratePhase(exsData, completedPhase)) celebrate(advancedTo, nextTitle);
+    }
+    async function goNext() {
+      await loadState(false); // renderCurrent ends the hold and starts the next exercise clean
+      statusEl().textContent = 'ready';
+      // Focus where the new exercise starts: Learn's prediction, else the editor.
+      const first = mode === 'learn' && document.querySelector('.pbtn[data-pred]');
+      if (first) first.focus(); else editorEl().focus();
+    }
+
     // Live path: POST a whitelisted op to the local server and stream the raw
     // output (already ANSI-colored by the toolchain) into the xterm terminal.
     async function runOp(op, extra) {
+      // A passed exercise waits on screen for Next → (holdForNext): a Run or Check
+      // now would test the old code as an attempt at the NEXT exercise. (Explain
+      // is reference text, so it still works.)
+      if (nextHold && op !== 'explain') { document.getElementById('nextbtn')?.focus(); return; }
       // Learn mode = active-recall gate: you must LOCK a compiles/fails prediction
       // before Run/Check will reveal the real output. (Assist/Dev: no gate.)
       if (mode === 'learn' && (op === 'run' || op === 'check') && predict.compiles === null) {
@@ -2483,6 +2566,7 @@
       }
       const btns = ['runbtn','checkbtn','explainbtn'].map(id=>document.getElementById(id));
       btns.forEach(x=>x && (x.disabled=true));
+      opBusy = true; // the terminal throbber spins only while this is in flight
       statusEl().textContent = op + '…';
       expandTerminal(); // output is coming — unfold the phone's collapsed terminal
       // Explain opens in the drawer (see below) and leaves the console — the error
@@ -2552,22 +2636,13 @@
         if (!out.passed) term.scrollToFirstError();
         statusEl().textContent = checkOnly ? 'compiles ✓' : out.passed ? 'passed' : 'failed';
         // Refresh the list/gauge/attempts after every run; if a pass advanced
-        // the learner, load the next exercise into the editor.
+        // the learner, the next exercise loads when they press Next →.
         let exsData = null;
         try { exsData = await fetch('api/exercises').then(r => r.json()); if (exsData) renderList(exsData); } catch (_) {}
         // Capture the completed exercise's phase BEFORE renderCurrent overwrites curExercise.
         const completedPhase = curExercise ? String(curExercise).split('/')[0] : null;
         try { const rev = await fetch('api/review').then(r => r.json()); renderReview(rev); } catch (_) {}
-        if (out.advanced_to) {
-          let nextTitle = null;
-          try { const cur = await fetch('api/current').then(r => r.json()); renderCurrent(cur); nextTitle = cur && cur.title; } catch (_) {}
-          // renderCurrent cleared the old run, so the next exercise starts clean:
-          // just this note in the console, and the badge back to "ready".
-          term.writeln(g('✓ exercise complete — advancing to ' + (nextTitle || out.advanced_to)));
-          statusEl().textContent = 'ready';
-          // A completed phase is the bigger moment — else the usual exercise popup.
-          if (!maybeCelebratePhase(exsData, completedPhase)) celebrate(out.advanced_to, nextTitle);
-        }
+        if (out.advanced_to) await holdForNext(out.advanced_to, exsData, completedPhase); // stays until Next →
       } catch (e) {
         logEvent('net', 'info', 'local /api/run unavailable (' + (e && e.message || e) + ') — routing to on-device path');
         // The run fetch failed. Two cases:
@@ -2604,7 +2679,7 @@
             termuxPending = 'r' + Date.now();
             // Pass the op so Check does a fast type-check (rustc --emit=metadata, no run).
             try { AndroidSeam.runViaTermux(stdin, termuxPending, op); }
-            catch (e2) { termuxPending = null; term.writeln(r('Termux bridge error') + d(': ' + e2)); statusEl().textContent = 'error'; }
+            catch (e2) { termuxPending = null; term.writeln(r('Termux bridge error') + d(': ' + e2)); statusEl().textContent = 'error'; } // never answers: stop the throbber
           } else {
             term.writeln(r('No on-device compiler yet') + d(' — install Termux to run Rust natively on your phone (offline, no account):'));
             term.writeln(d('  1. Install Termux  ·  f-droid.org/packages/com.termux'));
@@ -2626,9 +2701,10 @@
           statusEl().textContent = 'offline';
         }
       } finally {
-        // Re-enable — but if a pass just loaded the next exercise, Learn's predict
-        // gate is armed again (Run/Check carry .gated): leave those locked.
+        // Re-enable — but leave Run/Check locked if Learn's predict gate is armed
+        // again (they carry .gated).
         btns.forEach(x=>x && (x.disabled = x.classList.contains('gated')));
+        opBusy = false;
         refit();
       }
     }
@@ -2812,7 +2888,8 @@
         { tag: [CM.tags.macroName, CM.tags.function(CM.tags.variableName), CM.tags.function(CM.tags.propertyName)], color: 'var(--tok-m)' },
       ]);
       const theme = CM.EditorView.theme({
-        '&': { background: 'transparent', color: 'var(--fg)', fontSize: '13px', height: '100%' },
+        // fontSize follows ⋯ → Text size (--read-scale): the code is read too.
+        '&': { background: 'transparent', color: 'var(--fg)', fontSize: 'calc(13px * var(--read-scale))', height: '100%' },
         '.cm-content': { fontFamily: 'var(--mono)', padding: '10px 0', caretColor: 'var(--accent)' },
         '.cm-scroller': { fontFamily: 'var(--mono)', lineHeight: '1.55', overflow: 'auto' },
         '.cm-gutters': { background: 'transparent', border: 'none', color: 'var(--fg-dim)' },
@@ -3090,6 +3167,7 @@
     // book/source review, last resort; never the solution). Server clamps to what
     // the exercise carries.
     async function runHint() {
+      if (nextHold) return; // solved, waiting for Next →: the server's hint is for the NEXT exercise
       try {
         const h = await fetch('api/hint?level=' + (hintLevel + 1)).then(r => r.json());
         if (!h || !h.text) return;
@@ -3321,6 +3399,7 @@
 
     function renderCurrent(j) {
       const ed = editorEl();
+      setNextHold(false); // a new exercise (Next →, a reload, a list pick) ends any hold
       if (!j || !j.exercise) {
         document.getElementById('lessonSub').textContent = 'no current exercise — set one with `rpro exercise next`.';
         ed.value = ''; curExercise = null; curOriginal = '';
@@ -3569,17 +3648,16 @@
     initCM(); // mount the CodeMirror editor before the first exercise loads into it
     loadState(true);
 
-    // throbber in the terminal bar (mirrors the TUI Throbber). It spins only while a
-    // request is in flight (runOp disables #explainbtn for exactly that long; an
-    // on-device run sets termuxPending), shows a still "…" under reduced motion, and
-    // is blank when idle. It used to spin forever, whatever the app was doing (WCAG 2.2.2).
+    // throbber in the terminal bar (mirrors the TUI Throbber). It spins only while
+    // work is in flight (opBusy, or an on-device run pending), shows a still "…"
+    // under reduced motion (the OS setting or ⋯ → Reduce motion), and is blank
+    // when idle. It used to spin forever beside the code: motion a learner
+    // couldn't stop (WCAG 2.2.2), out of reach of the CSS reduced-motion guard.
     const frames = ["⠋","⠙","⠹","⠸","⠼","⠴","⠦","⠧","⠇","⠏"]; let i = 0;
-    const calm = window.matchMedia ? matchMedia('(prefers-reduced-motion: reduce)') : null;
     setInterval(() => {
-      const el = document.getElementById('throb');
-      const busy = document.getElementById('explainbtn')?.disabled || !!termuxPending;
-      const next = !busy ? '' : calm && calm.matches ? '…' : frames[i++ % frames.length];
-      if (el && el.textContent !== next) el.textContent = next;
+      const el = document.getElementById('throb'); if (!el) return;
+      const next = !(opBusy || termuxPending) ? '' : calmMotion() ? '…' : frames[i++ % frames.length];
+      if (el.textContent !== next) el.textContent = next;
     }, 90);
 
     // tab + exercise selection (visual)
@@ -4795,8 +4873,8 @@
       }
       // Rebind the click to THIS render's scroll container (d changes each render).
       btn.onclick = () => {
-        const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-        d.scrollTo({ top: 0, behavior: reduce ? 'auto' : 'smooth' });
+        // calmMotion: the OS reduced-motion setting, or ⋯ → Reduce motion.
+        d.scrollTo({ top: 0, behavior: calmMotion() ? 'auto' : 'smooth' });
         // The button hides at the top: bring keyboard focus up with the view, or the
         // next Tab would carry on from a hidden button at the bottom.
         d.tabIndex = -1; d.focus({ preventScroll: true });
@@ -4961,11 +5039,11 @@
         if (kh && !kh.hidden) { e.stopImmediatePropagation(); toggleKeysHelp(false); return; }
       }
       const tag = (e.target.tagName || '').toLowerCase();
-      if (tag === 'textarea' || tag === 'input' || e.metaKey || e.ctrlKey || e.altKey) return;
-      // Both code editors are CodeMirror 6, a contenteditable <div>, not a <textarea>:
-      // without this, typing `let` there opened Lessons, Rust's `?` opened this help,
-      // and the letter never reached the code.
-      if (e.target.isContentEditable || (e.target.closest && e.target.closest('.cm-editor'))) return;
+      // Both code editors are CodeMirror 6, a contenteditable <div> (not a
+      // <textarea>), so typing `let` opened Lessons, `r` ran, Rust's `?` opened
+      // this help, and each such letter was eaten (WCAG 2.1.4).
+      const editing = e.target.isContentEditable || !!(e.target.closest && e.target.closest('.cm-editor'));
+      if (tag === 'textarea' || tag === 'input' || editing || e.metaKey || e.ctrlKey || e.altKey) return;
       if (!keysOn) return; // switched off in the ⋯ menu
       if (document.querySelector('dialog[open]')) return; // a question (ask) is open: its keys are its own
       const fn = KEYMAP[e.key.toLowerCase()];
@@ -5057,13 +5135,16 @@
     // Gamification chip → the XP/badges panel; paint from any existing progress.
     document.getElementById('xpchip').onclick = () => gamifyTogglePanel();
     try { const gs = gamifyLoad(); if (gs) gamifyPaint(gs); } catch (_) {}
-    // Reading size (#41): scale all long-form reading text (Book, lessons, drawer)
-    // via --read-scale, persisted. Clamped so layout never breaks. 5 steps.
+    // Reading size (#41): scale the reading text (Book, lessons, drawer, and the
+    // Practice task, code, output and Insights) via --read-scale, persisted.
+    // Clamped so layout never breaks. 5 steps.
     const READ_KEY = 'ts-read-scale', READ_STEPS = [0.85, 1, 1.15, 1.3, 1.5];
     function applyReadScale(v) {
       document.documentElement.style.setProperty('--read-scale', String(v));
       const label = document.getElementById('rsVal');
       if (label) label.textContent = Math.round(v * 100) + '%';
+      // The code editors size their text by --read-scale too: re-measure lines.
+      try { if (cmView) cmView.requestMeasure(); if (ideView) ideView.requestMeasure(); } catch (_) {}
     }
     function readScaleGet() {
       try { const v = parseFloat(localStorage.getItem(READ_KEY)); if (READ_STEPS.includes(v)) return v; } catch (_) {}
@@ -5080,9 +5161,51 @@
     document.getElementById('rsDown').onclick = () => setReadScale(-1);
     document.getElementById('rsUp').onclick = () => setReadScale(1);
     applyReadScale(readScaleGet()); // restore on load
+    // Spacing (⋯ → Reading): more room between lines, words and letters in the
+    // reading text (html[data-spacing] sets --read-lh / --read-ls / --read-ws).
+    // Step 0 = as tuned. Persisted per learner, offline.
+    const SPACE_KEY = 'ts-read-space', SPACE_STEPS = ['normal', 'wide', 'wider'];
+    function applySpacing(n) {
+      if (n) document.documentElement.dataset.spacing = String(n);
+      else delete document.documentElement.dataset.spacing;
+      const label = document.getElementById('spVal');
+      if (label) label.textContent = SPACE_STEPS[n];
+    }
+    let spaceStep = (() => {
+      try { const n = parseInt(localStorage.getItem(SPACE_KEY), 10); if (n >= 0 && n < SPACE_STEPS.length) return n; } catch (_) {}
+      return 0;
+    })();
+    function setSpacing(dir) {
+      spaceStep = Math.min(SPACE_STEPS.length - 1, Math.max(0, spaceStep + dir));
+      try { localStorage.setItem(SPACE_KEY, String(spaceStep)); } catch (_) {}
+      applySpacing(spaceStep);
+    }
+    document.getElementById('spDown').onclick = () => setSpacing(-1);
+    document.getElementById('spUp').onclick = () => setSpacing(1);
+    applySpacing(spaceStep); // restore on load
+    // Reduce motion (⋯): the in-app twin of the OS setting, for a learner whose
+    // device lacks it or who wants calm only here. html[data-motion] drives the
+    // same CSS guard as prefers-reduced-motion; JS motion (the throbber, smooth
+    // scrolling) asks calmMotion(). Persisted per learner, offline.
+    const MOTION_KEY = 'ts-motion';
+    function calmMotion() {
+      return document.documentElement.dataset.motion === 'reduce'
+        || !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+    }
+    function applyMotion(reduce) {
+      if (reduce) document.documentElement.dataset.motion = 'reduce';
+      else delete document.documentElement.dataset.motion;
+      const c = document.getElementById('motionChk'); if (c) c.checked = reduce;
+    }
+    document.getElementById('motionChk').onchange = e => {
+      try { if (e.target.checked) localStorage.setItem(MOTION_KEY, 'reduce'); else localStorage.removeItem(MOTION_KEY); } catch (_) {}
+      applyMotion(e.target.checked);
+    };
+    applyMotion((() => { try { return localStorage.getItem(MOTION_KEY) === 'reduce'; } catch (_) { return false; } })());
     // run/check/explain → live POST to the local server, raw output into xterm.
     document.getElementById('runbtn').onclick = () => runOp('run');
     document.getElementById('checkbtn').onclick = () => runOp('check');
+    document.getElementById('nextbtn').onclick = goNext; // after a pass (see holdForNext)
     // editable code: persist on input, reset restores the original starter.
     editorEl().addEventListener('input', markEdited);
     editorEl().addEventListener('scroll', () => { const hl = editorHL(), ed = editorEl(); if (hl) { hl.scrollTop = ed.scrollTop; hl.scrollLeft = ed.scrollLeft; } });
@@ -5303,6 +5426,9 @@
       });
       appmenu.querySelectorAll('.menuitem[data-goto]').forEach(b =>
         b.onclick = () => { showView(b.dataset.goto); closeMenu(); });
+      // Help: the shortcut sheet opened only with `?`; ⋯ is the one control in the
+      // same place on every view, so it carries help too (WCAG 3.2.6).
+      document.getElementById('menuKeys').onclick = () => { closeMenu(); toggleKeysHelp(true); };
       // Sandbox runs on the web via POST /api/sandbox, and on-device via the
       // Termux bridge (op 'sandbox') — available on both, so no gating.
     }

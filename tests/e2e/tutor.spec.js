@@ -23,10 +23,11 @@ test('the Tutor reacts to the run and stays guide-only', async ({ page }) => {
 
 // Check only type-checks; a clean Run is what completes an exercise (some
 // exercises compile fine and then panic, so "it compiles" can't be the success
-// condition). Guard the wording, that Check completes nothing, and that the
-// auto-advance after a passing Run hands over a CLEAN next exercise
-// (walkthrough 2026-10-13, findings 9 + 10). Pins basics/08_use_before_init:
-// no other spec selects or passes it, so it lands on a fresh store (e2e.sh).
+// condition). Guard the wording, that Check completes nothing, and that a
+// passing Run holds the solved exercise until Next, which then hands over a
+// CLEAN next exercise (walkthrough 2026-10-13, findings 9 + 10; WCAG 3.2.5).
+// Pins basics/08_use_before_init: no other spec selects or passes it, so it
+// lands on a fresh store (e2e.sh).
 test('Check never claims a run or completes; a passing Run advances to a clean exercise', async ({ page, request }) => {
   const EX = 'basics/08_use_before_init';
   const FIX = 'fn main() {\n    let count: i32 = 0;\n    println!("the count is {count}");\n}\n';
@@ -58,11 +59,22 @@ test('Check never claims a run or completes; a passing Run advances to a clean e
   await page.locator('#menuBtn').click();
   await page.locator('#modesw button[data-mode="learn"]').click();
 
-  // A clean Run completes it and auto-advances…
+  // A clean Run completes it, and the page HOLDS it (the change waits for the
+  // learner): the solved code, the guess's result, the output and the Tutor's
+  // "what was the bug?" stay, and Next takes the place of Run…
   await page.locator('#runbtn').click();
   await expect(page.locator('#conout')).toContainText(/exercise complete/, { timeout: 30_000 });
   expect((await (await request.get('/api/current')).json()).exercise, 'a clean Run completes it').not.toBe(EX);
-  // …to a next exercise that starts clean: no old output, badge, diagnostics or open gate.
+  await expect(page.locator('#nextbtn'), 'Next replaces Run, with focus').toBeFocused();
+  await expect(page.locator('#runbtn')).toBeHidden();
+  await expect(page.locator('#statusline')).toHaveText('passed');
+  await expect(page.locator('#conout'), 'the program’s own output is still there').toContainText('the count is 0');
+  await expect(page.locator('#predictDone'), 'the guess’s result is still there').toBeVisible();
+  await expect(tutor).toContainText('Solved');
+  expect(await page.evaluate(() => window.__cm.get()), 'the solved code stays').toBe(FIX);
+  // …until Next brings a next exercise that starts clean: no old output, badge,
+  // diagnostics or open gate.
+  await page.locator('#nextbtn').click();
   await expect(page.locator('#statusline')).toHaveText('ready');
   await expect(page.locator('#conout')).not.toContainText('the count is 0');
   await expect(page.locator('#diag')).toContainText('no run yet');

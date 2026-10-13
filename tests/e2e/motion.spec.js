@@ -2,7 +2,9 @@
 // cool and modern … animations"). Two properties matter and both are easy for a
 // refactor to break: (1) the delight cues exist — the XP bar fills smoothly, a
 // view fades in, a level-up pulses the chip; (2) they ALL collapse under
-// prefers-reduced-motion, so the app stays usable/accessible for opt-outs.
+// prefers-reduced-motion, so the app stays usable/accessible for opt-outs; and
+// (3) nothing moves on its own forever beside the task (WCAG 2.2.2), while
+// ⋯ → Reduce motion does in the app what the OS setting does.
 const { test, expect } = require('@playwright/test');
 
 test.describe('Motion polish', () => {
@@ -69,6 +71,75 @@ test.describe('Motion polish', () => {
     const viewDur = await page.evaluate(() => getComputedStyle(document.querySelector('.docview')).animationDuration);
     expect(parseFloat(viewDur)).toBeLessThan(0.01);
     await ctx.close();
+  });
+
+  test('nothing pulses or spins forever beside the task (WCAG 2.2.2)', async ({ page }) => {
+    // Motion that starts on its own and lasts over 5s needs a way to stop it. The
+    // terminal throbber spun at 11fps forever (idle too), and the prediction
+    // spotlight and Run's call to action pulsed as long as you read or coded.
+    await page.goto('/'); // Learn: the unanswered prediction is spotlit
+    await page.waitForSelector('#predictbar.needs-answer');
+    const iters = (sel) => page.evaluate((s) => getComputedStyle(document.querySelector(s)).animationIterationCount, sel);
+    expect(await iters('#predictbar'), 'the spotlight pulses briefly, not forever').not.toBe('infinite');
+    const throb = page.locator('#throb');
+    const idle = await throb.textContent();
+    await page.waitForTimeout(450);
+    expect(await throb.textContent(), 'the idle throbber stands still').toBe(idle);
+    await page.evaluate(() => { opBusy = true; }); // as while a run is in flight
+    await expect.poll(() => throb.textContent(), { message: 'it spins while work is in flight' }).not.toBe(idle);
+    await page.evaluate(() => { opBusy = false; });
+    await expect(throb, 'and is blank again once the work is done').toHaveText('');
+    await page.locator('.pbtn[data-pred="fails"]').click(); // Run becomes the call to action
+    await expect(page.locator('#runbtn')).toHaveClass(/cta/);
+    expect(await iters('#runbtn'), 'Run’s call to action pulses briefly, not forever').not.toBe('infinite');
+  });
+
+  test('a Termux call that fails at once leaves the throbber still', async ({ page }) => {
+    // On a phone the throbber spins until Termux answers (termuxPending). A bridge
+    // call that throws never answers, so it must not leave the spinner going.
+    await page.addInitScript(() => {
+      window.AndroidSeam = { termuxInstalled: () => true, runViaTermux: () => { throw new Error('no bridge'); } };
+      try { localStorage.setItem('ts-mode', 'assist'); } catch (e) {} // no predict gate in the way
+    });
+    await page.route('**/api/run', (route) => route.abort()); // no server run: the on-device path
+    await page.goto('/');
+    await page.waitForFunction(() => curExercise !== null);
+    await page.evaluate(() => runOp('run'));
+    await expect(page.locator('#statusline'), 'the on-device path ran, and failed').toHaveText('error');
+    await expect(page.locator('#throb'), 'nothing is in flight, so nothing spins').toHaveText('');
+  });
+
+  test('reduced motion: the completion popup still shows; busy work shows a still "…"', async ({ browser }) => {
+    const ctx = await browser.newContext({ reducedMotion: 'reduce' });
+    const page = await ctx.newPage();
+    await page.goto('/');
+    await page.waitForSelector('#exTitle');
+    // The .001ms guard used to jump the popup's fade straight to its opacity:0 end.
+    await page.evaluate(() => celebrate('basics/next', 'Next one'));
+    await page.waitForTimeout(200);
+    const op = await page.evaluate(() => parseFloat(getComputedStyle(document.getElementById('celebrate')).opacity));
+    expect(op, 'the popup is shown, just without moving').toBeGreaterThan(0.9);
+    await page.evaluate(() => { opBusy = true; });
+    await expect(page.locator('#throb')).toHaveText('…');
+    await ctx.close();
+  });
+
+  test('⋯ Reduce motion does in the app what the OS setting does, and is remembered', async ({ page }) => {
+    // For a learner whose device has no reduce-motion setting, or who wants calm
+    // only here: the same guard, from a checkbox in the ⋯ menu.
+    await page.goto('/');
+    await page.locator('#menuBtn').click();
+    await page.locator('#motionChk').check();
+    await expect(page.locator('html')).toHaveAttribute('data-motion', 'reduce');
+    const dur = await page.evaluate(() => parseFloat(getComputedStyle(document.getElementById('predictbar')).animationDuration));
+    expect(dur, 'the spotlight no longer pulses').toBeLessThan(0.01);
+    await page.evaluate(() => celebrate('basics/next', 'Next one'));
+    await page.waitForTimeout(200);
+    expect(await page.evaluate(() => parseFloat(getComputedStyle(document.getElementById('celebrate')).opacity)),
+      'the completion popup still shows').toBeGreaterThan(0.9);
+    await page.reload();
+    await expect(page.locator('html')).toHaveAttribute('data-motion', 'reduce');
+    await expect(page.locator('#motionChk')).toBeChecked();
   });
 
   test('finishing a whole phase fires a gold milestone celebration (once)', async ({ page }) => {

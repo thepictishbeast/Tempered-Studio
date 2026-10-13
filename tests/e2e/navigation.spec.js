@@ -102,6 +102,11 @@ test.describe('? keyboard-shortcuts overlay', () => {
     await page.keyboard.type('?');
     await expect(help).toBeVisible();
     await expect(help).toContainText(/shortcut/i);
+    // The code editors keep Tab for indenting, so the help says how to leave them
+    // (WCAG 2.1.2), and each editor carries that hint for screen readers too.
+    await expect(help).toContainText('Leave the editor');
+    await expect(page.locator('.cm-content')).toHaveAttribute('aria-describedby', 'cmKeysHint');
+    await expect(page.locator('#cmKeysHint')).toHaveText(/press Escape, then Tab/);
     await page.keyboard.press('Escape');
     await expect(help).toBeHidden();
   });

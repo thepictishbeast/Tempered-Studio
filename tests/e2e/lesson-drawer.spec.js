@@ -112,4 +112,17 @@ test.describe('Lesson drawer: rich-text parity with the Learn tab', () => {
     await expect(pop).toBeVisible();
     await expect(pop).not.toBeEmpty();
   });
+
+  test('keyboard: opening moves focus into the lesson; Escape hands it back', async ({ page }) => {
+    // The drawer sits BEFORE <main> in the DOM, so focus left on its opener never
+    // reached the lesson by Tab (WCAG 2.4.3). It moves in, and comes back on close.
+    await page.goto('/');
+    const handle = page.locator('#lessonHandle');
+    await expect(handle).toBeVisible(); // every exercise has a lesson
+    await handle.focus();
+    await page.keyboard.press('Enter');
+    await expect(page.locator('#lessonDrawerBody'), 'focus is in the lesson').toBeFocused();
+    await page.keyboard.press('Escape');
+    await expect(handle, 'and back on the tab that opened it').toBeFocused();
+  });
 });

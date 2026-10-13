@@ -78,4 +78,19 @@ test.describe('editor Run shortcut (Ctrl/Cmd+Enter)', () => {
     const v = await page.locator('.cm-content').evaluate((el) => el.value);
     expect(v, 'no stray newline inserted by the shortcut').toBe('fn main() {}');
   });
+
+  test('typing in the editor types: no single-key shortcut fires (WCAG 2.1.4)', async ({ page }) => {
+    // Both editors are CodeMirror 6, a contenteditable <div>; the shortcut guard
+    // skipped only <textarea>/<input>, so `l` opened Lessons, `r` ran, Rust's `?`
+    // opened the shortcuts help, and each such letter was eaten. Nothing runs here.
+    await page.goto('/'); // Learn; any current exercise will do
+    await page.waitForFunction(() => curExercise !== null);
+    await page.locator('.cm-content').click();
+    await page.keyboard.press('Control+End');
+    await page.keyboard.type(' // let r = f()?; check the book');
+    expect(await page.evaluate(() => window.__cm.get())).toContain('// let r = f()?; check the book');
+    await expect(page.locator('#keyshelp'), 'Rust’s ? is code, not the help').toBeHidden();
+    await expect(page.locator('#docview'), 'l / t / b / s did not switch views').toBeHidden();
+    await expect(page.locator('#statusline'), 'r / c did not run or check').toHaveText('ready');
+  });
 });
