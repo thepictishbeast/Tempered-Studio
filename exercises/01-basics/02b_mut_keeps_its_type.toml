@@ -1,0 +1,18 @@
+id = "basics/02b_mut_keeps_its_type"
+title = "`mut` changes the value, never its kind"
+difficulty = "beginner"
+estimated_minutes = 3
+concept = "mut"
+expected_error_code = "E0308"
+solution_outline = """
+`laps` started as a whole number (`3`), so that is its type for good; `mut` only
+lets you change WHICH whole number it holds. `"4"` in quotes is text (`&str`), not
+a number, so the compiler reports mismatched types (E0308) and points back at the
+`3` that fixed the type. Drop the quotes: `laps = 4;`. (If you ever need the name
+to hold a different kind of value, that is shadowing, in Lesson 3.)
+"""
+
+[[book_refs]]
+chapter = "ch03-01-variables-and-mutability"
+anchor = "variables-and-mutability"
+why = "The Book's mutability section: `mut` lets a binding's value change, while its type stays what it was."

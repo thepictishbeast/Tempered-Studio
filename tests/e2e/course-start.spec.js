@@ -30,4 +30,17 @@ test.describe('Course start: Lesson 1 first, titles not ids', () => {
       .toHaveAttribute('data-id', 'basics/01_immutable_assign');
     expect(await text(page.locator('#docview .lessonpractice'))).not.toMatch(ID_LABEL);
   });
+
+  // Lesson 2 had no exercise of its own: its Practice card offered nothing for
+  // the lesson's one pitfall (a `mut` binding keeps its type, E0308).
+  test('Lesson 2 practises its own pitfall, right after Lesson 1', async ({ page, request }) => {
+    const { exercises } = await (await request.get('/api/exercises')).json();
+    expect(exercises[2].id, "third in course order: Lesson 2's").toBe('basics/02b_mut_keeps_its_type');
+    await page.goto('/');
+    await page.waitForSelector('#exlist .ex[data-id]');
+    await page.evaluate(() => showView('lessons', '02-mutability'));
+    await page.waitForSelector('#docview .lessonpractice .practicelink');
+    await expect(page.locator('#docview .practicelink').first())
+      .toHaveAttribute('data-id', 'basics/02b_mut_keeps_its_type');
+  });
 });
