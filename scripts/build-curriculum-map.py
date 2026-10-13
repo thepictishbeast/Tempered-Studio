@@ -131,7 +131,7 @@ def main():
     w("\n---\n")
     w("\n## 3 · Alignment analysis\n")
     w("**Status: re-sequenced (2026-07).** Exercises were re-ordered so each section marches in lesson "
-      "order and the course now OPENS on Lesson 1 (`basics/08_use_before_init` → \"Lesson 1 — Bindings & "
+      "order and the course now OPENS on Lesson 1 (`basics/01_immutable_assign` → \"Lesson 1 — Bindings & "
       "Immutability\"). Ids stayed stable (order is the file-path order; progress is keyed by id), so the "
       "re-order was pure file renames + a `CONTENT_VERSION` bump.\n")
     w(f"**Remaining back-jumps: {backs}.** Each is a *category-boundary* outlier — an exercise whose lesson "

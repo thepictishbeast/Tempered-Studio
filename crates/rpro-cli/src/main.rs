@@ -532,6 +532,10 @@ fn cmd_init(refresh: bool) -> Result<()> {
     if (refresh || !have_any) && bundled.is_dir() {
         copy_tree(&bundled, &exercises_dir)
             .with_context(|| format!("seeding exercises from {}", bundled.display()))?;
+        // The copy overlays (a learner's own exercises survive), so drop the same-id
+        // copy a renamed bundled exercise leaves under its old name — otherwise the
+        // course order lists it twice. Parity with the web server's seed.
+        rpro_runner::prune_renamed(&bundled, &exercises_dir).context("pruning renamed copies")?;
         let n = rpro_runner::discover(&exercises_dir).map_or(0, |v| v.len());
         println!("  + seeded {n} bundled exercise(s)");
     }

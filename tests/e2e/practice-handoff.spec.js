@@ -11,7 +11,10 @@ test.describe('Lesson → Practice handoff (Batch A)', () => {
   test('a locked exercise link asks to jump ahead; declining stays, accepting lands in Practice on it', async ({ page }) => {
     await page.goto('/');
     await page.waitForSelector('#exTitle');
-    await page.evaluate(() => showView('lessons', '01-bindings-and-immutability'));
+    // Lesson 3's exercise sits deeper in the course, so the soft gate holds it
+    // (423 -> confirm). Not Lesson 1: its first link is the course's FIRST
+    // exercise, which the gate always leaves open, so no confirm would fire.
+    await page.evaluate(() => showView('lessons', '03-shadowing'));
     await page.waitForSelector('#docview .lessonpractice .practicelink');
     const target = await page.locator('#docview .practicelink').first().getAttribute('data-id');
     expect(target).toBeTruthy();
@@ -26,11 +29,9 @@ test.describe('Lesson → Practice handoff (Batch A)', () => {
     // Accept it -> force-select + jump to Practice with that exercise current.
     await page.locator('#docview .practicelink').first().click();
     await page.locator('#askok').click();
-    await page.waitForFunction(
-      (want) => (document.getElementById('exId')?.textContent || document.body.textContent).includes(want),
-      target,
-      { timeout: 5000 },
-    );
+    // Exercise ids are no longer printed on the page (titles are), so ask the app
+    // which exercise is current instead of searching the body text for the id.
+    await page.waitForFunction((want) => curExercise === want, target, { timeout: 5000 });
     // The Practice surface is live (Run button present and view switched).
     await expect(page.locator('#runbtn')).toBeVisible();
   });

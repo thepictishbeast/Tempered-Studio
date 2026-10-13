@@ -974,10 +974,12 @@ fn ensure_seeded(
     // Copy exercises in if we don't have any yet — or refresh on a version bump.
     // Exercises are OVERLAY-copied (never cleared): the seeded README invites the
     // user to drop their own exercises alongside the bundled ones, and a clearing
-    // refresh would delete them. (Consequence: a *renamed/removed* bundled
-    // exercise would linger — acceptable; exercise ids are stable.)
+    // refresh would delete them. But a bundled exercise RENAMED to re-sequence the
+    // course would then linger under its old name as a same-id ghost — listed
+    // twice, interleaving the course order — so those stale copies are pruned.
     if refresh || rpro_runner::discover(&ex_dir).map_or(true, |v| v.is_empty()) {
         copy_dir_recursive(workspace_exercises, &ex_dir)?;
+        rpro_runner::prune_renamed(workspace_exercises, &ex_dir)?;
     }
 
     // The read-only reference dirs below are SYNCED on refresh (cleared, then
@@ -1043,8 +1045,12 @@ fn ensure_seeded(
         copy_dir_recursive(workspace_cheatsheets, &cheats_dir)?;
     }
 
-    // Make sure progress.json has a Current entry; if not, set the first one.
-    let progress = store.load_progress().unwrap_or_default();
+    // Make sure progress.json has a Current entry; if not, make the first
+    // exercise that is not yet Done (course order) Current. This edits the LOADED
+    // progress: saving a fresh `Progress::default()` here wiped every completion
+    // whenever a store booted with nothing Current (after the last exercise was
+    // passed, say). Every exercise Done is a finished course: leave it as it is.
+    let mut progress: Progress = store.load_progress().unwrap_or_default();
     let has_current = progress
         .entries
         .values()
@@ -1052,11 +1058,13 @@ fn ensure_seeded(
     if !has_current {
         if let Ok(mut exercises) = rpro_runner::discover(&ex_dir) {
             exercises.sort_by(|a, b| a.source.cmp(&b.source)); // path order = learning order
-            if let Some(first) = exercises.first() {
-                let mut p = Progress::default();
-                p.set_current(&first.meta.id);
+            let first_unfinished = exercises.iter().find(|e| {
+                progress.entries.get(&e.meta.id).map(|p| p.status) != Some(ExerciseStatus::Done)
+            });
+            if let Some(first) = first_unfinished {
+                progress.set_current(&first.meta.id);
                 store
-                    .save_progress(&p)
+                    .save_progress(&progress)
                     .map_err(|e| std::io::Error::other(e.to_string()))?;
             }
         }
@@ -1724,6 +1732,130 @@ mod tests {
                 .is_some_and(|e| e.status == ExerciseStatus::Current),
             "the learner's Current exercise survived the content refresh"
         );
+    }
+
+    /// Walkthrough 2026-10-13 (#2, #12): a brand-new learner must open on the
+    /// exercise Lesson 1 actually teaches. Lesson 1 demonstrates `error[E0384]`
+    /// and Lesson 2 opens "Lesson 1 showed … (that was E0384)", so the first
+    /// exercise in course order — the one a fresh store makes Current — must
+    /// expect the first error code Lesson 1 shows, and the GUI's `CONCEPT_LESSON`
+    /// map must send that exercise back to Lesson 1. Pinned to the lesson TEXT and
+    /// the map rather than to an id, so a re-sequence that strands Lesson 1's error
+    /// behind another exercise (as when the E0381 one opened the course) fails.
+    #[test]
+    fn fresh_store_opens_on_the_error_lesson_1_teaches() {
+        let (d, _app) = seeded_app();
+        let manifest = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+        let lesson_path = manifest.join("../../lessons/01-bindings-and-immutability.md");
+        let lesson = std::fs::read_to_string(lesson_path).unwrap();
+        let taught = lesson
+            .split("error[")
+            .nth(1)
+            .and_then(|s| s.split(']').next())
+            .expect("Lesson 1 shows a real compiler error");
+        let exercises = rpro_runner::discover(&d.path().join("exercises")).unwrap();
+        let first = &exercises[0];
+        let (id, _, _) = resolve_current(d.path()).expect("a fresh store has a current exercise");
+        assert_eq!(id, first.meta.id, "a fresh store opens on exercise 1");
+        assert_eq!(
+            first.meta.expected_error_code.as_deref(),
+            Some(taught),
+            "the course must open on the error Lesson 1 teaches, not on {}",
+            first.meta.id
+        );
+        let gui = std::fs::read_to_string(manifest.join("../../gui/index.html")).unwrap();
+        let mapped = format!("'{}': '01-bindings-and-immutability'", first.meta.concept);
+        assert!(
+            gui.contains(&mapped),
+            "CONCEPT_LESSON must send {:?} to Lesson 1",
+            first.meta.concept
+        );
+    }
+
+    /// Re-sequencing renames exercise files, and exercises are overlay-copied, so
+    /// an upgraded store kept each OLD file as a same-id ghost: the exercise was
+    /// listed twice and `record_run` advanced into the ghost. A refresh must drop
+    /// the stale copy — and still keep a learner's own exercise.
+    #[test]
+    fn content_refresh_prunes_same_id_copies_left_by_a_rename() {
+        use std::fs;
+        let dir = tempfile::tempdir().unwrap();
+        let manifest = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+        let root = dir.path();
+        let seed = || {
+            ensure_seeded(
+                root,
+                &manifest.join("../../exercises"),
+                &manifest.join("../../book"),
+                &manifest.join("../../glossary"),
+                &manifest.join("../../lessons"),
+                &manifest.join("../../quizzes"),
+                &manifest.join("../../cheatsheets"),
+            )
+            .unwrap();
+        };
+        seed();
+        // An older bundle's copy of the first exercise, under its pre-rename name.
+        let ex_dir = root.join("exercises");
+        let first = rpro_runner::discover(&ex_dir).unwrap().remove(0).source;
+        let ghost = first.with_file_name("99_pre_rename_copy.rs");
+        fs::copy(&first, &ghost).unwrap();
+        fs::copy(first.with_extension("toml"), ghost.with_extension("toml")).unwrap();
+        // A learner's own exercise (an id the bundle doesn't ship) must survive.
+        let own = ex_dir.join("99-user/my_own.rs");
+        fs::create_dir_all(own.parent().unwrap()).unwrap();
+        fs::write(&own, "fn main() {}\n").unwrap();
+        fs::write(
+            own.with_extension("toml"),
+            "id = \"user/my_own\"\ntitle = \"Mine\"\ndifficulty = \"beginner\"\n\
+             estimated_minutes = 1\nconcept = \"binding\"\n\
+             [[book_refs]]\nchapter = \"ch01\"\nwhy = \"x\"\n",
+        )
+        .unwrap();
+        // Roll the marker back so the next boot is a content refresh.
+        fs::write(root.join(".content-version"), "0").unwrap();
+        seed();
+        assert!(!ghost.exists(), "the pre-rename copy is pruned");
+        assert!(!ghost.with_extension("toml").exists(), "and its metadata");
+        assert!(first.exists(), "the bundled copy stays");
+        assert!(own.exists(), "a learner's own exercise survives");
+        let ids: Vec<String> = rpro_runner::discover(&ex_dir)
+            .unwrap()
+            .into_iter()
+            .map(|e| e.meta.id)
+            .collect();
+        let unique: std::collections::BTreeSet<&String> = ids.iter().collect();
+        assert_eq!(unique.len(), ids.len(), "each exercise listed once");
+    }
+
+    /// A store that boots with nothing Current must KEEP its progress. That state
+    /// follows passing the last exercise, and (now that `record_run` never
+    /// re-opens finished work) passing one whose followers are all Done. The
+    /// seeder used to save a fresh default over it, wiping every completion.
+    #[test]
+    fn boot_with_nothing_current_keeps_progress() {
+        let (d, _app) = seeded_app();
+        let store = Store::at(d.path().to_path_buf());
+        let exercises = rpro_runner::discover(&d.path().join("exercises")).unwrap();
+        let mut p = store.load_progress().unwrap();
+        p.set_done(&exercises[0].meta.id); // the seeded Current: now nothing is Current
+        p.set_done(&exercises[5].meta.id);
+        store.save_progress(&p).unwrap();
+        let manifest = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+        ensure_seeded(
+            d.path(),
+            &manifest.join("../../exercises"),
+            &manifest.join("../../book"),
+            &manifest.join("../../glossary"),
+            &manifest.join("../../lessons"),
+            &manifest.join("../../quizzes"),
+            &manifest.join("../../cheatsheets"),
+        )
+        .unwrap();
+        let after = store.load_progress().unwrap();
+        assert_eq!(after.done_count(), 2, "no completion is lost");
+        let (id, _, _) = resolve_current(d.path()).expect("an unfinished exercise is Current");
+        assert_eq!(id, exercises[1].meta.id, "the first unfinished one");
     }
 
     async fn body_string(res: axum::response::Response) -> String {

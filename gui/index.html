@@ -2433,10 +2433,14 @@
     // glossary definitions, which are plain-text but written with markdown backticks.
     const mdInlineCode = s => esc(s).replace(/`([^`]+)`/g, '<code>$1</code>');
     const CHIP = { done:'✓', current:'▸', locked:'🔒', skipped:'»' };
+    // Exercise ids in COURSE order (the server's list order), kept by renderList so
+    // renderCurrent can say "Exercise 3 of 91" instead of printing the raw id.
+    let exOrder = [];
 
     function renderList(data) {
       const box = document.getElementById('exlist');
       const items = (data && data.exercises) || [];
+      exOrder = items.map(e => e.id);
       // Header shows progress at a glance; on phones it's the accordion handle
       // for the collapsed list (progressive disclosure — exercise first, list on tap).
       const ttl = document.getElementById('exTitle');
@@ -2467,13 +2471,14 @@
             + `<span class="exphasecount${ps.done === ps.total ? ' done' : ''}">${ps.done}/${ps.total}${ps.done === ps.total ? ' ✓' : ''}</span></div>`
           : '';
         // Lead with the human TITLE (readable + shows the exercise's real order),
-        // not the raw `phase/NN_name` id — the id's number is a stable internal
-        // handle, not the learning position, so it can read out of sequence after a
-        // re-order. Keep the id as muted secondary text + in data-id/aria (selection
-        // and tests key off the id, never the label). Strip title markdown backticks.
+        // never the raw `phase/NN_name` id — the id's number is a stable internal
+        // handle, not the learning position, so it reads out of sequence after a
+        // re-order (a current "08" above a locked "01"). The id stays only in
+        // data-id (selection and tests key off it, never the label). Strip title
+        // markdown backticks.
         const label = (e.title || e.id).replace(/`/g, '');
-        return head + `<div class="ex ${st}${sel}" data-id="${esc(e.id)}" role="button" tabindex="0" aria-label="Switch to ${esc(label)} (${esc(e.id)}). Status: ${st}${tries}"><span class="chip" aria-hidden="true">${CHIP[st] || '•'}</span>`
-             + `<span class="t">${esc(label)}<small>${esc(e.id)} · ${st}${tries}</small></span></div>`;
+        return head + `<div class="ex ${st}${sel}" data-id="${esc(e.id)}" role="button" tabindex="0" aria-label="Switch to ${esc(label)}. Status: ${st}${tries}"><span class="chip" aria-hidden="true">${CHIP[st] || '•'}</span>`
+             + `<span class="t">${esc(label)}<small>${st}${tries}</small></span></div>`;
       }).join('') : '<div class="ex"><span class="t" style="color:var(--fg-dim)">no exercises</span></div>';
       // The list items LOOK clickable (pointer cursor) — make them switch the
       // current exercise (`POST /api/select`). The server validates the id and
@@ -2488,7 +2493,7 @@
               else if (r && r.error === 'done') {
                 // Re-open a completed exercise to REDO it (Paul: reset-to-redo was
                 // dead). Per-exercise only; it re-counts as done once you pass again.
-                if (await ask({ text: '“' + el.dataset.id + '” is completed. Re-open it to practise again?', ok: 'Re-open', no: 'Not now' })) {
+                if (await ask({ text: 'This exercise is completed. Re-open it to practise again?', ok: 'Re-open', no: 'Not now' })) {
                   try {
                     const rr = JSON.parse(AndroidSeam.resetExercise(el.dataset.id));
                     if (rr && rr.ok) { statusEl().textContent = 'reopened — redo it'; await loadState(false); }
@@ -2506,10 +2511,10 @@
               body: JSON.stringify({ id: el.dataset.id }),
             });
             if (res.ok) { statusEl().textContent = 'switched'; await loadState(false); }
-            else if (res.status === 409) { statusEl().textContent = '“' + el.dataset.id + '” is done — press ↺ Reset to redo it'; }
+            else if (res.status === 409) { statusEl().textContent = 'already done — press ↺ Reset to redo it'; }
             else if (res.status === 423) {
               // Soft gate: locked until earlier exercises are done — offer to jump ahead.
-              if (await ask({ text: '“' + el.dataset.id + '” is locked — the earlier exercises build up to it.\nJump ahead anyway?', ok: 'Jump ahead', no: 'Not yet' })) {
+              if (await ask({ text: 'This exercise is locked — the earlier exercises build up to it.\nJump ahead anyway?', ok: 'Jump ahead', no: 'Not yet' })) {
                 const r2 = await fetch('api/select', { method: 'POST', headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({ id: el.dataset.id, force: true }) });
                 if (r2.ok) { statusEl().textContent = 'jumped ahead'; await loadState(false); }
@@ -2874,7 +2879,11 @@
     // exercise `concept` tags; values are lesson file stems (see /api/lessons).
     const CONCEPT_LESSON = {
       'binding': '01-bindings-and-immutability',
-      'mutability': '02-mutability',
+      // `mutability` is basics/01_immutable_assign: the "cannot assign twice" error
+      // that Lesson 1 demonstrates and Lesson 2 then recalls ("Lesson 1 showed ...
+      // that was E0384"). It is the practice for Lesson 1 and the FIRST exercise of
+      // the course; sending it to Lesson 2 is what let use-before-init open the course.
+      'mutability': '01-bindings-and-immutability',
       'shadowing': '03-shadowing',
       'constant': '04-constants',
       'expression-statement': '06-expressions-statements-semicolon',
@@ -3077,8 +3086,12 @@
       const lessonLink = lessonId
         ? ` · <a href="#" class="lesson-link" id="lessonLink" data-lesson="${esc(lessonId)}" title="Read the textbook lesson that teaches this">📖 read the lesson</a>`
         : '';
+      // Lead with the position in COURSE order ("Exercise 3 of 91"), not the raw
+      // `phase/NN_name` id: that number is a stable progress key, not the order.
+      const pos = exOrder.indexOf(j.exercise);
+      const where = pos >= 0 ? `Exercise ${pos + 1} of ${exOrder.length}` : 'Exercise';
       document.getElementById('lessonSub').innerHTML =
-        `${esc(j.exercise)}${chip}${esc(mins)}${lessonLink} · reads → writes`;
+        `${esc(where)}${chip}${esc(mins)}${lessonLink} · reads → writes`;
       const gb = document.getElementById('glossbox'); if (gb) { gb.hidden = true; gb.innerHTML = ''; }
       const cc = document.getElementById('conceptChip');
       if (cc) {
@@ -3093,7 +3106,7 @@
       if (ll) ll.onclick = e => { e.preventDefault(); openLessonDrawer(curLessonId, curLessonTitle); };
       const lh = document.getElementById('lessonHandle');
       if (lh) lh.hidden = !curLessonId; // show the pull-tab only when a lesson exists
-      document.getElementById('editorBar').textContent = `${j.exercise} · main.rs`;
+      document.getElementById('editorBar').textContent = 'main.rs'; // the file tab, never the internal id
       // Restore a saved edit for this exercise if present, else the starter.
       let saved = null;
       try { saved = localStorage.getItem(lsKey(j.exercise)); } catch (_) {}
@@ -3263,7 +3276,7 @@
         renderCurrent(cur);
         if (intro) {
           if (cur && cur.exercise) {
-            term.writeln(d('current exercise: ') + b(cur.exercise));
+            term.writeln(d('current exercise: ') + b((cur.title || cur.exercise).replace(/`/g, '')));
             term.writeln(d('press Run / Check / Explain.'));
             statusEl().textContent = 'ready';
           } else {
@@ -4216,9 +4229,11 @@
           const matches = (exs.exercises || []).filter(e => CONCEPT_LESSON[e.concept] === id);
           if (matches.length) {
             practiceHtml = '<div class="lessonpractice"><h3>Practice this lesson</h3><ul>'
-              + matches.map(e =>
-                  `<li><a href="#" class="practicelink" data-id="${esc(e.id)}">${esc(e.id)}</a>`
-                  + `<small> · ${esc(e.status || 'locked')}</small></li>`).join('')
+              + matches.map(e => {
+                  const label = (e.title || e.id).replace(/`/g, ''); // the title, never the raw id
+                  return `<li><a href="#" class="practicelink" data-id="${esc(e.id)}">${esc(label)}</a>`
+                    + `<small> · ${esc(e.status || 'locked')}</small></li>`;
+                }).join('')
               + '</ul></div>';
           }
         } catch (_) {}
@@ -4319,11 +4334,11 @@
       try {
         let res = await fetch('api/select', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) });
         if (res.status === 423) {
-          if (!await ask({ text: '“' + id + '” is locked — the earlier exercises build up to it.\nJump ahead anyway?', ok: 'Jump ahead', no: 'Not yet' })) return;
+          if (!await ask({ text: 'This exercise is locked — the earlier exercises build up to it.\nJump ahead anyway?', ok: 'Jump ahead', no: 'Not yet' })) return;
           res = await fetch('api/select', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, force: true }) });
         }
         if (res.ok) { await loadState(false); showView('practice'); }
-        else if (res.status === 409) { ask({ text: '“' + id + '” is already done — open it from the list and press ↺ Reset to redo it.' }); }
+        else if (res.status === 409) { ask({ text: 'This exercise is already done — open it from the list and press ↺ Reset to redo it.' }); }
         else { ask({ text: 'Could not open that exercise.' }); }
       } catch (_) { ask({ text: 'Offline — could not open that exercise.' }); }
     }

@@ -23,7 +23,7 @@ use walkdir::WalkDir;
 /// `.content-version` marker; a store whose marker is older re-copies the
 /// read-only content dirs on next seed, so an already-seeded store isn't frozen
 /// on its first-run copies. Progress is never touched by that refresh.
-pub const CONTENT_VERSION: u32 = 57;
+pub const CONTENT_VERSION: u32 = 58;
 
 /// Errors during exercise discovery.
 #[derive(Debug, thiserror::Error)]
@@ -129,6 +129,37 @@ pub fn discover(root: &Path) -> Result<Vec<Exercise>, DiscoveryError> {
     Ok(exercises)
 }
 
+/// Remove stale copies of RENAMED bundled exercises from a seeded store.
+///
+/// Exercises are overlay-copied into a store (never cleared: a learner's own
+/// exercises must survive a content refresh), so re-sequencing the course by
+/// renaming a bundled file left the OLD file behind too — a ghost with the same
+/// `id`. `discover` then listed that exercise twice, the course order interleaved,
+/// and [`record_run`] advanced by position into the ghost. A store exercise is
+/// stale when the bundle ships its `id` at a different relative path; ids the
+/// bundle does not ship (the learner's own) are never touched. Best-effort: if
+/// either tree fails to discover, nothing is removed.
+///
+/// # Errors
+/// I/O failure removing a stale `.rs` / `.toml` pair.
+pub fn prune_renamed(bundled: &Path, store: &Path) -> std::io::Result<()> {
+    let (Ok(shipped), Ok(seeded)) = (discover(bundled), discover(store)) else {
+        return Ok(());
+    };
+    for ex in seeded {
+        // Where the bundle ships this id (ids are unique — the golden corpus pins it).
+        let shipped_at = shipped
+            .iter()
+            .find(|b| b.meta.id == ex.meta.id)
+            .and_then(|b| b.source.strip_prefix(bundled).ok());
+        if shipped_at.is_some_and(|at| Some(at) != ex.source.strip_prefix(store).ok()) {
+            std::fs::remove_file(&ex.source)?;
+            std::fs::remove_file(ex.source.with_extension("toml"))?;
+        }
+    }
+    Ok(())
+}
+
 /// The first *error*-level diagnostic code in a run's output — the wall the
 /// learner is hitting right now. Warnings/notes and code-less diagnostics are
 /// skipped. Pure (no I/O).
@@ -146,7 +177,8 @@ pub fn primary_error_code(diags: &[Diagnostic]) -> Option<&str> {
 ///
 /// Bumps the attempt counter, folds the result into the review queue (via
 /// `ReviewState::fold_run`), and — when `advance` is set (a passing Run/Test) —
-/// marks `id` Done and promotes the next exercise in learning order to Current.
+/// marks `id` Done and promotes the next exercise in learning order that is not
+/// already Done to Current (finished work is never re-opened).
 /// Returns the id advanced to, if any. Best-effort: a failed load/save returns
 /// `None` rather than erroring, so it never breaks a run. `discover` already
 /// returns exercises in learning order, so no re-sort is needed here.
@@ -171,7 +203,14 @@ pub fn record_run(
     if advance {
         progress.set_done(id);
         if let Some(pos) = exs.iter().position(|e| e.meta.id == id) {
-            if let Some(next) = exs.get(pos + 1) {
+            // Skip anything already Done: after a jump-ahead, or a re-sequence that
+            // moved this exercise in front of finished ones, the positional next can
+            // be Done — and `set_current` would re-open it (the done count drops).
+            let next = exs[pos + 1..].iter().find(|e| {
+                progress.entries.get(&e.meta.id).map(|p| p.status)
+                    != Some(rpro_state::ExerciseStatus::Done)
+            });
+            if let Some(next) = next {
                 progress.set_current(&next.meta.id);
                 advanced_to = Some(next.meta.id.clone());
             }
@@ -332,6 +371,26 @@ book_refs = []
         );
         assert_eq!(p.entries["basics/01_first"].attempts, 1);
         assert_eq!(p.reviews.due(), vec!["E4321".to_string()]); // box 1, still due
+    }
+
+    #[test]
+    fn record_run_never_reopens_a_finished_exercise() {
+        let dir = tempfile::tempdir().unwrap();
+        let store = seed_two(dir.path());
+        // 02 was finished first (a jump-ahead, or a re-sequence that moved 01 in
+        // front of it). Passing 01 must not hand the learner 02 again.
+        let mut p = store.load_progress().unwrap();
+        p.set_done("basics/02_second");
+        store.save_progress(&p).unwrap();
+        let advanced = record_run(&store, "basics/01_first", &[], true, true);
+        assert_eq!(advanced, None, "nothing unfinished follows 01");
+        let p = store.load_progress().unwrap();
+        assert_eq!(
+            p.entries["basics/02_second"].status,
+            rpro_state::ExerciseStatus::Done,
+            "a finished exercise stays finished"
+        );
+        assert_eq!(p.done_count(), 2);
     }
 
     #[test]
