@@ -3086,6 +3086,9 @@
       // guards that don't count toward exhaustiveness (E0004).
       'refutable-pattern': '33-refutability',
       'match-guard': '33b-guards-bindings-nested',
+      // `deref` is smart-pointers/06b_box_needs_star: Lesson 29b's point that `*`
+      // follows a box the way it follows a reference (E0369 without it).
+      'deref': '29b-deref-drop',
       'orphan-rule-newtype': '25b-trait-bounds',
       'lifetime-annotations': '26-lifetime-annotations',
       'struct-lifetime': '26c-lifetimes-in-structs',

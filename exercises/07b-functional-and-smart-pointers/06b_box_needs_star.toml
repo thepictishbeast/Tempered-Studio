@@ -1,0 +1,18 @@
+id = "smart-pointers/06b_box_needs_star"
+title = "Reach the value in a box with `*`"
+difficulty = "intermediate"
+estimated_minutes = 4
+concept = "deref"
+expected_error_code = "E0369"
+solution_outline = """
+`price` is a `Box<i32>`, not an `i32`: the box points at the 12. Arithmetic works
+on the number, not on the box, so `price * 3` is rejected (E0369, `Box<{integer}>`
+does not implement multiplication by an integer). Follow the box with `*`, just as
+you would follow a reference: `let total = *price * 3;`. The box stays a box; `*`
+only reaches through it to the value.
+"""
+
+[[book_refs]]
+chapter = "ch15-01-box"
+anchor = "storing-data-on-the-heap"
+why = "A `Box<T>` holds a value on the heap; you reach the value through the box."
