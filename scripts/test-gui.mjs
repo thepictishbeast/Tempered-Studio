@@ -284,6 +284,42 @@ check(mdToHtml('### The API of Mutex<T>').includes('id="the-api-of-mutext"'),
     'every exercise concept resolves in the glossary — no dead chip' + (deadChips.length ? ` — DEAD: ${deadChips.join(', ')}` : ''));
 }
 
+// 12. Icons need a BUNDLED font (walkthrough 2026-10-13 #1/#11: icons drew as
+// empty boxes on a system with no emoji font). The GUI's emoji come from the
+// vendored Noto subset, so (a) every emoji it uses must sit inside one of that
+// sheet's unicode-ranges; (b) symbols NO bundled font covers stay out (⧉ U+29C9
+// was the Copy icon, fullwidth ＋ U+FF0B needs a CJK font, ⛶ U+26F6 / ⤢ U+2922
+// are the fullscreen symbols the IDE avoids); (c) form controls inherit the
+// page's emoji-first stack (the UA sheet gives <button>/<input> a system font of
+// their own), and no `font:` shorthand carries `inherit` among its values: that
+// is invalid CSS, the whole declaration is dropped, and the lesson filter's 🔍
+// fell back to the UA font that way. Which ELEMENTS really get the stack takes
+// a browser: tests/e2e/icons.spec.js.
+{
+  const sheet = readFileSync(join(here, '..', 'gui', 'vendor', 'emoji', 'noto-emoji.css'), 'utf8');
+  const ranges = [...sheet.matchAll(/unicode-range:([^;]+);/g)].flatMap(m => m[1].split(',').map(r => {
+    const [a, b] = r.trim().slice(2).split('-').map(h => parseInt(h, 16));
+    return [a, b ?? a];
+  }));
+  // An emoji = an astral pictograph, a default-emoji BMP symbol, or a symbol
+  // forced to emoji style by a following VS16 (U+FE0F), like the level-up arrow.
+  const chars = [...html], emoji = new Set();
+  chars.forEach((ch, i) => {
+    if (ch.codePointAt(0) >= 0x1F000 || /\p{Emoji_Presentation}/u.test(ch) || chars[i + 1]?.codePointAt(0) === 0xFE0F) emoji.add(ch);
+  });
+  const unbundled = [...emoji].filter(ch => !ranges.some(([a, b]) => ch.codePointAt(0) >= a && ch.codePointAt(0) <= b));
+  check(emoji.size > 20 && unbundled.length === 0,
+    `every emoji the GUI uses is in the bundled subset (${emoji.size})` + (unbundled.length ? ` — NOT BUNDLED: ${unbundled.join(' ')}` : ''));
+  const noFont = [...new Set(chars.filter(ch => [0x29C9, 0xFF0B, 0x26F6, 0x2922].includes(ch.codePointAt(0))))];
+  check(noFont.length === 0,
+    'no symbol that no bundled font covers (⧉ ＋ ⛶ ⤢)' + (noFont.length ? ` — FOUND: ${noFont.join(' ')}` : ''));
+  check(/button,\s*input,\s*select,\s*textarea\s*\{\s*font-family:\s*inherit;?\s*\}/.test(html),
+    'form controls inherit the page font stack (button, input, select, textarea)');
+  const badFont = [...html.matchAll(/(?<![-\w])font:\s*[^;{}\s][^;{}]*\sinherit\s*[;}]/g)].map(m => m[0]);
+  check(badFont.length === 0,
+    'no `font:` shorthand with `inherit` among its values' + (badFont.length ? ` — ${badFont.join(' | ')}` : ''));
+}
+
 console.log('');
 if (fails === 0) console.log('GUI TRANSFORM TESTS PASS ✓');
 else { console.log('GUI TRANSFORM TESTS FAILED: ' + fails); process.exit(1); }

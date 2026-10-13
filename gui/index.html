@@ -83,6 +83,12 @@
     margin:0; font-family:var(--ui); background:var(--bg); color:var(--fg);
     height:100vh; overflow:hidden; -webkit-font-smoothing:antialiased;
   }
+  /* Form controls take the page's stack too. The UA sheet gives <button>,
+     <input>, <select> and <textarea> a system font of their own (Arial in
+     Chromium on Linux) that never names the bundled emoji font, so 🔥 💡 📖 🌓
+     📂 🖥 💾 🗑 in buttons drew as empty boxes on systems without an emoji font,
+     while the same emoji in a <div> drew fine. One rule covers every control. */
+  button, input, select, textarea { font-family:inherit; }
   header {
     display:flex; align-items:center; gap:18px; padding:10px 16px; position:relative;
     background:linear-gradient(180deg,var(--bg-2),var(--bg)); border-bottom:1px solid var(--line);
@@ -355,7 +361,7 @@
     padding:9px 12px; margin:9px 0 14px; font-family:var(--mono); font-size:12px; line-height:1.5;
     white-space:pre-wrap; word-break:break-word; max-height:30vh; overflow:auto; }
   .docview .coderun-out.err, .ldrawer-body .coderun-out.err { color:#ffd9d0; }
-  /* ⧉ Copy on code blocks (lessons/book) */
+  /* 📋 Copy on code blocks (lessons/book) */
   .docview .codewrap, .ldrawer-body .codewrap { position:relative; }
   .docview .codecopy, .ldrawer-body .codecopy { position:absolute; top:6px; right:6px; background:var(--bg-2); color:var(--fg-dim);
     border:1px solid var(--line); border-radius:6px; padding:2px 8px; font-size:11px; font-weight:600;
@@ -430,13 +436,13 @@
      dark-theme accent is only ~3.5:1; on #b7410e it's 5.56:1 — passes WCAG AA in
      both themes. (The Run button dodges this axe check only via its gradient bg.) */
   .docview .continuecta { display:inline-block; margin:6px 0 16px; padding:11px 20px; border:none;
-    border-radius:10px; background:#b7410e; color:#fff; font:600 14.5px/1.2 inherit; cursor:pointer;
+    border-radius:10px; background:#b7410e; color:#fff; font:600 14.5px/1.2 var(--ui); cursor:pointer;
     max-width:100%; text-align:left; transition:filter .15s, transform .15s; }
   .docview .continuecta:hover { filter:brightness(1.08); transform:translateY(-1px); }
   .docview .allread { margin:6px 0 16px; color:var(--done); font-weight:600; }
   /* Type-to-filter the lesson list. */
   .docview .lessonfilter { width:100%; box-sizing:border-box; margin:0 0 14px; padding:9px 13px;
-    border:1px solid var(--line); border-radius:9px; background:var(--bg-2); color:var(--fg); font:14px inherit; }
+    border:1px solid var(--line); border-radius:9px; background:var(--bg-2); color:var(--fg); font:14px var(--ui); }
   .docview .lessonfilter:focus { outline:none; border-color:var(--accent); }
   .docview .lessonfilter::placeholder { color:var(--fg-dim); }
   .docview .lessonnomatch { color:var(--fg-dim); }
@@ -1122,12 +1128,12 @@
 
       <!-- Native-Run (Termux) one-time-setup card. Hidden until an on-device run
            fails for the allow-external-apps reason; gives a copy-ONLY-the-command
-           button (the terminal ⧉ copies the whole blob, which Paul found fiddly). -->
+           button (the terminal 📋 copies the whole blob, which Paul found fiddly). -->
       <div id="termuxSetup" class="tmxsetup" hidden>
         <button class="tmxsetup-x" id="tmxSetupX" type="button" aria-label="Dismiss">×</button>
         <div class="tmxsetup-h">⚙ Native Run needs a one-time Termux setting</div>
         <p class="tmxsetup-p">Paste this into <b>Termux</b> and press enter, then tap <b>Run</b> again. It's a <b>one-time</b> setup — it persists across reboots and app updates. <b>If Run still fails, fully close and reopen the app</b> so the new permission takes effect.</p>
-        <div class="tmxsetup-cmd"><code id="tmxCmd"></code><button class="tmxcopy" id="tmxCopy" type="button">⧉ Copy command</button></div>
+        <div class="tmxsetup-cmd"><code id="tmxCmd"></code><button class="tmxcopy" id="tmxCopy" type="button">📋 Copy command</button></div>
       </div>
 
       <!-- Copyable bridge-error card: when a run can't reach the compiler, show the
@@ -1136,11 +1142,11 @@
       <div id="runError" class="tmxsetup" hidden>
         <button class="tmxsetup-x" id="runErrorX" type="button" aria-label="Dismiss">×</button>
         <div class="tmxsetup-h">⚠ Run couldn't reach the compiler</div>
-        <div class="tmxsetup-cmd"><code id="runErrorMsg"></code><button class="tmxcopy" id="runErrorCopy" type="button">⧉ Copy error</button></div>
+        <div class="tmxsetup-cmd"><code id="runErrorMsg"></code><button class="tmxcopy" id="runErrorCopy" type="button">📋 Copy error</button></div>
       </div>
 
       <div class="terminal">
-        <div class="tbar"><button class="tfold" id="tfold" type="button" title="Collapse / expand the output" aria-label="Collapse or expand the output">▾</button><span class="throbber" id="throb">⠹</span> <span class="tbar-lbl">rpro · output</span><span style="flex:1"></span><button class="termcopy" id="termcopy" title="Copy the output (e.g. to share an error)">⧉ copy</button></div>
+        <div class="tbar"><button class="tfold" id="tfold" type="button" title="Collapse / expand the output" aria-label="Collapse or expand the output">▾</button><span class="throbber" id="throb">⠹</span> <span class="tbar-lbl">rpro · output</span><span style="flex:1"></span><button class="termcopy" id="termcopy" title="Copy the output (e.g. to share an error)">📋 copy</button></div>
         <pre id="conout" class="conout" tabindex="0" aria-label="Compiler output — select any text to copy"></pre>
       </div>
     </section>
@@ -1437,7 +1443,7 @@
     // Native-Run (Termux) one-time setup: enable allow-external-apps. The command
     // is IDEMPOTENT — it appends the line only if absent, then reloads — so it's
     // safe to re-run and the setting sticks across reboots AND app updates; you do
-    // it once. Kept as ONE line so "⧉ Copy command" hands over a single paste.
+    // it once. Kept as ONE line so "📋 Copy command" hands over a single paste.
     const TERMUX_SETUP_CMD = "mkdir -p ~/.termux; grep -qxF 'allow-external-apps=true' ~/.termux/termux.properties 2>/dev/null || echo 'allow-external-apps=true' >> ~/.termux/termux.properties; termux-reload-settings";
     function showTermuxSetup() {
       const el = document.getElementById('termuxSetup'); if (!el) return;
@@ -1451,7 +1457,7 @@
       el.hidden = false;
     }
     function hideRunError() { const el = document.getElementById('runError'); if (el) el.hidden = true; }
-    function termText() { // the console text, for the ⧉ Copy-all button
+    function termText() { // the console text, for the 📋 Copy-all button
       const e = conEl();
       return e ? e.textContent.replace(/\n{3,}/g, '\n\n').replace(/\s+$/, '') : '';
     }
@@ -1482,9 +1488,9 @@
         : '<p style="color:var(--fg-dim)">Nothing here yet. Errors — compiler · device · UI · network — show up the moment they happen.</p>';
       const dump = rows.map(e => `[${e.t}] ${e.cat}/${e.level}  ${e.msg}`).join('\n');
       d.innerHTML = '<h1>🩺 Logs</h1>'
-        + '<p style="color:var(--fg-dim)">Every error, grouped so you can read just the relevant ones — then ⧉ Copy to share it.</p>'
+        + '<p style="color:var(--fg-dim)">Every error, grouped so you can read just the relevant ones — then 📋 Copy to share it.</p>'
         + '<div class="logbar"><div class="logtabs">' + tabs + '</div>'
-        + '<span style="flex:1"></span><button class="logbtn" id="logcopy">⧉ Copy</button><button class="logbtn" id="logclear">Clear</button></div>'
+        + '<span style="flex:1"></span><button class="logbtn" id="logcopy">📋 Copy</button><button class="logbtn" id="logclear">Clear</button></div>'
         + '<div class="logwrap">' + body + '</div>';
       d.querySelectorAll('.logtab').forEach(b => b.onclick = () => renderLogs(b.dataset.f));
       document.getElementById('logcopy').onclick = () => copyText(dump || '(no entries)');
@@ -1881,7 +1887,7 @@
       if (full) full.onclick = () => {
         // Toggle the body class only; keep a CONFIRMED-color glyph (🖥) fixed and
         // convey state via aria-pressed/title/.on — a glyph swap risked tofu
-        // (⛶/⤢ are outside the bundled Noto subset, so they render as boxes).
+        // (U+26F6/U+2922 are outside the bundled Noto subset, so they render as boxes).
         const on = document.body.classList.toggle('ide-full-on');
         full.setAttribute('aria-pressed', on ? 'true' : 'false');
         full.classList.toggle('on', on);
@@ -1955,7 +1961,7 @@
         body.appendChild(btn);
       });
       const add = document.createElement('button'); add.type = 'button'; add.className = 'ide-file ide-file-new';
-      add.innerHTML = '<span class="ide-fname">＋ New scratch</span>';
+      add.innerHTML = '<span class="ide-fname">+ New scratch</span>';
       add.title = 'Create a new scratch file'; add.setAttribute('aria-label', 'New scratch file');
       add.onclick = () => ideNewScratch();
       body.appendChild(add);
@@ -2108,7 +2114,7 @@
       });
     }
 
-    // A small "⧉ Copy" on every CODE block (lessons/book) — grab any snippet to
+    // A small "📋 Copy" on every CODE block (lessons/book) — grab any snippet to
     // paste into the Sandbox / your own editor. Wraps each <pre> so the button
     // survives horizontal scroll; skips the run/console output <pre> (no <code>).
     function wireCodeCopy(root) {
@@ -2122,7 +2128,7 @@
         pre.parentNode.insertBefore(wrap, pre);
         wrap.appendChild(pre);
         const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'codecopy';
-        btn.textContent = '⧉ Copy'; btn.setAttribute('aria-label', 'Copy this code');
+        btn.textContent = '📋 Copy'; btn.setAttribute('aria-label', 'Copy this code');
         btn.onclick = () => copyText(codeEl.textContent || '');
         wrap.appendChild(btn);
       });
@@ -2154,7 +2160,7 @@
       const blob = (text + ' ' + (res.errmsg || '')).toLowerCase();
       // Surface the #1 setup gotcha with the exact one-time fix.
       if (blob.includes('allow-external-apps')) {
-        term.writeln(''); term.writeln(r('Termux needs one more setting') + d(' — see the card above: tap ') + g('⧉ Copy command') + d(', paste it in Termux, then Run again.'));
+        term.writeln(''); term.writeln(r('Termux needs one more setting') + d(' — see the card above: tap ') + g('📋 Copy command') + d(', paste it in Termux, then Run again.'));
         showTermuxSetup(); hideRunError();
         logEvent('app', 'error', 'Termux allow-external-apps not enabled — showed one-time setup card (copy-command).');
       } else if (res.errmsg) {
@@ -2180,7 +2186,7 @@
       // Check type-checks only (no run) — reflect that in the verdict, not "ran".
       const okMsg = termuxOp === 'check' ? '✓ type-checks — no errors' : '✓ compiled & ran on-device';
       term.writeln(passed ? g(okMsg) + d(' — native rustc via Termux')
-                          : r('✗ exit ' + res.exit) + d(' — read the output above; tap ⧉ copy to share it'));
+                          : r('✗ exit ' + res.exit) + d(' — read the output above; tap 📋 copy to share it'));
       statusEl().textContent = passed ? (termuxOp === 'check' ? 'type-checks ✓' : 'ran on-device ✓') : 'failed (on-device)';
       try { setInsights(true); } catch (_) {}
       renderTutor(passed, ''); // Termux output is raw (no parsed code) → by-hand phrasing
