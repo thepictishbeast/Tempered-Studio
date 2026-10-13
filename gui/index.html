@@ -138,6 +138,12 @@
   .menuitem:hover, .menuitem:focus { background:var(--bg-3); color:var(--fg); outline:none; }
   .menuitem[aria-current="true"] { color:var(--fg); box-shadow:inset 2px 0 0 var(--accent); }
   .spacer { flex:1; }
+  /* Visually hidden, still read by screen readers (#srAnnounce, see announce()). */
+  .sr-only { position:absolute; width:1px; height:1px; margin:-1px; padding:0; overflow:hidden;
+    clip:rect(0 0 0 0); white-space:nowrap; border:0; }
+  /* Landing spots that take focus so a screen reader keeps its place (landOn, the keys
+     help card, the badges panel). They are not controls, so no focus ring. */
+  :is(h1, h2, h3, h4, h5, h6)[tabindex="-1"]:focus, #docview:focus, .keyshelp-card:focus, .xppanel:focus { outline:none; }
   .badge {
     font-family:var(--mono); font-size:11.5px; padding:4px 9px; border-radius:999px;
     border:1px solid var(--line); color:var(--fg-dim); background:var(--bg-2);
@@ -397,8 +403,9 @@
   .docview .coderun-bar, .ldrawer-body .coderun-bar { display:flex; flex-wrap:wrap; gap:8px; margin:8px 0 0; }
   .docview .coderun-btn, .ldrawer-body .coderun-btn { background:var(--bg-2); color:var(--fg-dim); border:1px solid var(--line);
     border-radius:8px; padding:4px 13px; font-size:12px; font-weight:600; cursor:pointer; }
-  .docview .coderun-btn:hover:not(:disabled), .ldrawer-body .coderun-btn:hover:not(:disabled) { color:var(--fg); border-color:var(--accent); }
-  .docview .coderun-btn:disabled, .ldrawer-body .coderun-btn:disabled { opacity:.55; cursor:default; }
+  /* aria-disabled while it runs, not disabled: that dropped the focus it held (wireRunnableCode) */
+  .docview .coderun-btn:hover:not([aria-disabled="true"]), .ldrawer-body .coderun-btn:hover:not([aria-disabled="true"]) { color:var(--fg); border-color:var(--accent); }
+  .docview .coderun-btn[aria-disabled="true"], .ldrawer-body .coderun-btn[aria-disabled="true"] { opacity:.55; cursor:default; }
   .docview .coderun-out, .ldrawer-body .coderun-out { background:#0a0a0a; color:#e8e8e8; border:1px solid var(--line); border-radius:8px;
     padding:9px 12px; margin:9px 0 14px; font-family:var(--mono); font-size:calc(12px * var(--read-scale)); line-height:1.5;
     white-space:pre-wrap; word-break:break-word; max-height:30vh; overflow:auto; }
@@ -555,7 +562,8 @@
   .pane h2 { font-size:11px; text-transform:uppercase; letter-spacing:.12em; color:var(--fg-dim);
     margin:0; padding:12px 14px 8px; font-weight:600; display:flex; align-items:center; gap:8px; }
   .excount { color:var(--accent-soft); font-weight:700; letter-spacing:0; text-transform:none; }
-  .excaret { display:none; } /* only meaningful on phones (accordion) */
+  /* The phone accordion's fold <button> (renderList); none on desktop, where the list never folds. */
+  .excaret { display:none; background:none; border:0; padding:0; color:inherit; font:inherit; cursor:pointer; }
   /* lesson read-tracking ✓ marks */
   .docview .booktoc li.read a, .docview .roadlessons li.read a { color:var(--fg-dim); }
   .docview li.read .readmark { color:var(--done); margin-right:5px; }
@@ -620,7 +628,7 @@
   .gl-src { font-style:italic; }
   .gl-more { color:var(--accent-soft); text-decoration:none; }
   .gl-more:hover { text-decoration:underline; }
-  .gl-x { margin-left:auto; cursor:pointer; color:var(--fg-dim); padding:0 4px; }
+  .gl-x { margin-left:auto; cursor:pointer; color:var(--fg-dim); padding:0 4px; background:none; border:0; font:inherit; }
   .gl-x:hover { color:var(--fg); }
   .gl-x:focus-visible { color:var(--fg); outline:2px solid var(--accent); outline-offset:1px; border-radius:4px; }
   .lesson p { line-height:calc(1.6 * var(--read-lh)); font-size:calc(14px * var(--read-scale)); color:var(--fg); }
@@ -1164,15 +1172,15 @@
       <div class="track"><div class="fill" id="fill"></div></div>
       <span class="pct" id="pct">12 / 40 · 30%</span>
     </div>
-    <button id="xpchip" type="button" aria-haspopup="true" aria-expanded="false"
-      title="Your XP, level & streak — tap for badges" aria-label="XP, level and streak — open badges">
+    <button id="xpchip" type="button" aria-haspopup="dialog" aria-expanded="false"
+      title="Your XP, level & streak — tap for badges" aria-label="Lv 1, 0-day streak — open badges">
       <span class="xp-lv" id="xpLv">Lv 1</span>
       <span class="xp-bar"><i id="xpBar"></i></span>
       <span class="xp-streak" id="xpStreak">🔥0</span>
     </button>
     <button class="iconbtn" id="focusBtn" title="Focus mode — hide the exercise list for more room" aria-label="Toggle focus mode (hide the exercise list)" aria-pressed="false">◧</button>
     <button class="iconbtn" id="insightsBtn" title="Show/hide Insights (diagnostics, book refs &amp; tutor)" aria-label="Toggle the Insights panel" aria-expanded="false">▦</button>
-    <button class="iconbtn" id="theme" title="Toggle dark/light">🌓</button>
+    <button class="iconbtn" id="theme" title="Toggle dark/light" aria-label="Light theme" aria-pressed="false">🌓</button>
     <button class="iconbtn" id="menuBtn" title="Menu" aria-label="Open menu" aria-expanded="false" aria-controls="appmenu">⋯</button>
   </header>
 
@@ -1191,8 +1199,8 @@
         <button data-mode="dev" title="Dev: editor assists — Tab/Shift+Tab indent, Enter auto-indents, brackets auto-close (rust-analyzer later)">Dev</button>
       </span>
     </div>
-    <div class="menusec">
-      <div class="menuh">Go to</div>
+    <div class="menusec" role="group" aria-labelledby="menuGoto">
+      <div class="menuh" id="menuGoto">Go to</div>
       <button class="menuitem" data-goto="learn">📚 Learn hub</button>
       <button class="menuitem" data-goto="library">📖 Textbooks</button>
       <button class="menuitem" data-goto="glossary">📔 Glossary</button>
@@ -1233,16 +1241,17 @@
 
   <!-- Left LESSON DRAWER (Paul): slides out from the left to reference the current
        exercise's lesson while you code, then recedes — you keep your spot in the
-       editor. Opened by the "read the lesson" link or the left-edge handle. -->
+       editor. Opened by the "read the lesson" link or the left-edge handle. A
+       modal dialog: it takes focus, and the page behind is inert while it shows. -->
   <div id="lessonDrawerOverlay" class="ldrawer-overlay" hidden></div>
-  <aside id="lessonDrawer" class="ldrawer" hidden aria-label="Lesson reference" aria-hidden="true">
+  <div id="lessonDrawer" class="ldrawer" hidden role="dialog" aria-modal="true" aria-labelledby="lessonDrawerTitle" aria-hidden="true">
     <div class="ldrawer-bar">
       <span class="ldrawer-title" id="lessonDrawerTitle">Lesson</span>
       <a href="#" class="ldrawer-full" id="lessonDrawerFull" title="Open in the Learn tab">full view ↗</a>
       <button class="ldrawer-x" id="lessonDrawerX" type="button" aria-label="Close lesson">×</button>
     </div>
     <div class="ldrawer-body bookbody lessonbody scroll" id="lessonDrawerBody" tabindex="0"></div>
-  </aside>
+  </div>
   <!-- Always-there pull tab on the left edge (Practice view) to grab the lesson. -->
   <button id="lessonHandle" class="lesson-handle" type="button" title="Open the lesson" aria-label="Open the lesson drawer" hidden>📖<span class="lh-lbl">Lesson</span></button>
 
@@ -1254,7 +1263,7 @@
       </div>
       <div class="recall" id="recall" hidden>
         <h3 class="recall-h">↻ Recall</h3>
-        <div class="recall-codes" id="recallCodes" aria-live="polite"></div>
+        <div class="recall-codes" id="recallCodes"></div>
       </div>
     </section>
 
@@ -1262,15 +1271,17 @@
       <div class="lesson scroll">
         <h1 id="lessonTitle">Tempered Studio</h1>
         <div class="sub" id="lessonSub">loading the current exercise…</div>
-        <div class="glossbox" id="glossbox" hidden aria-live="polite"></div>
+        <div class="glossbox" id="glossbox" hidden></div>
         <p id="predictProse" class="predict-prose"><b>Predict first</b> — will it <b>pass</b>, or <b>fail</b> with a compile <b>error code</b> or a runtime <b>panic</b>? Lock your guess, then <b>Run</b>.</p>
-        <div class="predict" id="predictbar">
-          <span class="pl">🔮 Your prediction:</span>
+        <!-- One labelled group, the question as its description: a screen reader hears
+             the choices as one question, and which one is picked (aria-pressed). -->
+        <div class="predict" id="predictbar" role="group" aria-labelledby="predictLabel" aria-describedby="predictProse">
+          <span class="pl" id="predictLabel">🔮 Your prediction:</span>
           <!-- data-pred "compiles" = predicts SUCCESS (compiles AND runs clean); the
                label says "passes" since some exercises compile but panic at run time. -->
-          <button class="pbtn" data-pred="compiles">passes ✓</button>
-          <button class="pbtn" data-pred="fails">fails ✗</button>
-          <input id="predcode" class="pin" placeholder="error code? (blank if it passes or panics)" spellcheck="false" autocomplete="off" />
+          <button class="pbtn" data-pred="compiles" aria-pressed="false">passes ✓</button>
+          <button class="pbtn" data-pred="fails" aria-pressed="false">fails ✗</button>
+          <input id="predcode" class="pin" placeholder="error code? (blank if it passes or panics)" aria-label="Expected error code (leave blank if it passes or panics)" spellcheck="false" autocomplete="off" />
           <!-- passes/fails only PICKS (this code box stays open to type into);
                "Lock guess", Enter in the box, or Run confirms the whole guess. -->
           <button class="pbtn" id="predlock" disabled>Lock guess</button>
@@ -1327,8 +1338,10 @@
       </div>
 
       <div class="terminal">
-        <div class="tbar"><button class="tfold" id="tfold" type="button" title="Collapse / expand the output" aria-label="Collapse or expand the output">▾</button><span class="throbber" id="throb" aria-hidden="true"></span> <span class="tbar-lbl">rpro · output</span><span style="flex:1"></span><button class="termcopy" id="termcopy" title="Copy the output (e.g. to share an error)">📋 copy</button></div>
-        <pre id="conout" class="conout" tabindex="0" aria-label="Compiler output — select any text to copy"></pre>
+        <div class="tbar"><button class="tfold" id="tfold" type="button" title="Collapse / expand the output" aria-label="Collapse or expand the output" aria-controls="conout" aria-expanded="true">▾</button><span class="throbber" id="throb" aria-hidden="true">⠹</span> <span class="tbar-lbl">rpro · output</span><span style="flex:1"></span><button class="termcopy" id="termcopy" title="Copy the output (e.g. to share an error)">📋 copy</button></div>
+        <!-- A named region, so landmark navigation reaches it, and not live: rustc's
+             caret art read out on every run is noise (announceRun sums a run up). -->
+        <pre id="conout" class="conout" tabindex="0" role="region" aria-label="Compiler output — select any text to copy"></pre>
       </div>
     </section>
 
@@ -1371,10 +1384,6 @@
   <!-- Read out on entering either code editor (aria-describedby): Tab indents
        there, so say how to leave it (WCAG 2.1.2). -->
   <span id="cmKeysHint" hidden>Tab indents. To leave the editor, press Escape, then Tab.</span>
-  <!-- Copy feedback ("copied ✓" / "copy failed"), the only answer the 📋 copy
-       buttons give. A live region must exist before its first message or that
-       message is not read out, so it is here from the start; toast() reuses it. -->
-  <div id="toast" role="status"></div>
 
   <!-- In-page question box, driven by ask(). It replaces the browser's native
        alert/confirm/prompt, which block the page, read badly on phones and to
@@ -1387,6 +1396,17 @@
       <div class="askbtns"><button type="button" class="ghost" id="askno">Cancel</button><button class="run" id="askok" value="ok">OK</button></div>
     </form>
   </dialog>
+
+  <!-- Status regions, in the DOM from load: one created and filled in the same tick,
+       or filled while display:none, is not reliably read. #srAnnounce carries the
+       screen-reader messages of announce(); the toasts are reused by id. Last in the
+       page, so a message one still holds is not read out before the header.
+       #toast is the copy feedback ("copied ✓" / "copy failed"), the only answer
+       the 📋 copy buttons give. -->
+  <div id="srAnnounce" class="sr-only" role="status"></div>
+  <div id="toast" role="status"></div>
+  <div id="xptoast" class="xptoast" role="status"></div>
+  <div id="celebrate" role="status"></div>
 
   <script>
     // ── Real xterm.js terminal — renders true ANSI, like live rpro output ──
@@ -1493,6 +1513,26 @@
       t.textContent = msg; t.classList.add('show');
       clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove('show'), 1400);
     }
+    // announce(): a status message a screen reader must hear without a focus move
+    // (WCAG 4.1.3) goes through ONE persistent, visually hidden region, #srAnnounce.
+    // Messages from the same tick are joined so none overwrites another, and the
+    // region is emptied first so a repeat ("Failed …" twice) is read again.
+    function announce(msg) {
+      const el = document.getElementById('srAnnounce'); if (!el || !msg) return;
+      (announce._q = announce._q || []).push(String(msg));
+      el.textContent = '';
+      clearTimeout(announce._t);
+      announce._t = setTimeout(() => { el.textContent = announce._q.join(' · '); announce._q = []; }, 80);
+    }
+    // A run's one-line summary for screen readers: the verdict plus the FIRST raw
+    // error or panic line, exactly as the console prints it (ANSI stripped). It is the
+    // compiler's own text, not the parsed Diagnostics, so Learn stays by-hand; the
+    // console itself is not live (rustc's caret art read on every run is noise).
+    function announceRun(verdict, raw) {
+      const plain = String(raw || '').replace(/\x1b\[[0-9;]*m/g, '');
+      const first = (plain.match(/^(?:error|thread '[^']*' panicked).*$/m) || [''])[0];
+      announce([verdict, first].filter(Boolean).join(' '));
+    }
     // ask(): the in-page question box (#askdlg). Every question the GUI asks goes
     // through it, never a native browser dialog (see the note on the markup). It
     // doesn't block the page: it resolves once answered, and Esc, Cancel or a click
@@ -1597,10 +1637,13 @@
       }
       s.lastDone = done;
       s.bestDone = Math.max(s.bestDone || 0, done); // XP/level never go backwards on reset-to-redo
-      // Celebrate a level-up — a toast plus a pulsing ring on the chip.
+      // Celebrate a level-up — a toast plus a pulsing ring on the chip. A level-up
+      // and a badge often land together (5/10/20/50 done): ONE toast says both, as
+      // each xpToast() overwrote the last before it was seen or announced.
+      const news = [];
       const lvl = xpLevel(s.bestDone);
       if (lvl > (s.lastLevel || 1)) {
-        xpToast('⬆️ Level ' + lvl + '!');
+        news.push('⬆️ Level ' + lvl + '!');
         const chip = document.getElementById('xpchip');
         if (chip) { chip.classList.remove('levelup'); void chip.offsetWidth; chip.classList.add('levelup'); }
       }
@@ -1610,9 +1653,10 @@
       for (const b of BADGES) {
         if (!s.earned.includes(b.id) && b.test(s.bestDone, s.streak || 0)) {
           s.earned.push(b.id);
-          xpToast(b.icon + ' Badge: ' + b.name);
+          news.push(b.icon + ' Badge: ' + b.name);
         }
       }
+      if (news.length) xpToast(news.join(' · '));
       gamifySave(s);
       gamifyPaint(s);
     }
@@ -1621,6 +1665,10 @@
       if (lv) lv.textContent = 'Lv ' + xpLevel(s.bestDone);
       if (bar) bar.style.width = Math.round(xpProgress(s.bestDone) * 100) + '%';
       if (st) { const n = s.streak || 0; st.textContent = '🔥' + n; st.classList.toggle('hot', n >= 3); }
+      // The chip's aria-label replaces its text for screen readers, so it carries the
+      // values shown, starting with the visible "Lv N" (label in name, for speech input).
+      document.getElementById('xpchip')?.setAttribute('aria-label',
+        'Lv ' + xpLevel(s.bestDone) + ', ' + (s.streak || 0) + '-day streak — open badges');
     }
     // Tap the chip → a panel with exact XP and the badge grid (earned + locked).
     function gamifyTogglePanel() {
@@ -1645,12 +1693,18 @@
             return '<div class="badge ' + (got ? 'earned' : 'locked') + '" title="' + esc(b.name) + (got ? ' — earned' : ' — ' + esc(b.need)) + '">'
               + '<span class="bi" aria-hidden="true">' + b.icon + '</span><span class="bn">' + esc(b.name) + '</span>' + sub + '</div>';
           }).join('') + '</div>';
-      document.body.appendChild(p);
+      // Right after the chip, not at the end of <body>, so it follows its trigger in
+      // reading and Tab order; focus moves in, and Esc hands it back to the chip.
+      if (chip) chip.insertAdjacentElement('afterend', p); else document.body.appendChild(p);
       if (chip) chip.setAttribute('aria-expanded', 'true');
+      p.tabIndex = -1; p.focus({ preventScroll: true });
       // Dismiss on any outside click / Esc.
-      const off = (ev) => { if (!p.contains(ev.target) && ev.target !== chip) { p.remove(); if (chip) chip.setAttribute('aria-expanded', 'false'); document.removeEventListener('mousedown', off); document.removeEventListener('keydown', onEsc); } };
+      const off = (ev) => { if (!p.contains(ev.target) && ev.target !== chip) { const had = p.contains(document.activeElement); p.remove(); if (chip) { chip.setAttribute('aria-expanded', 'false'); if (had) chip.focus(); } document.removeEventListener('mousedown', off); document.removeEventListener('keydown', onEsc); } };
       const onEsc = (ev) => { if (ev.key === 'Escape') off({ target: document.body }); };
-      setTimeout(() => { document.addEventListener('mousedown', off); document.addEventListener('keydown', onEsc); }, 0);
+      // Esc listens at once: an Escape pressed before a timer ran closed nothing.
+      // Only mousedown waits a tick, so the click that opened the panel can't close it.
+      document.addEventListener('keydown', onEsc);
+      setTimeout(() => { document.addEventListener('mousedown', off); }, 0);
     }
     // Ephemeral congrats on COMPLETING an exercise (fires on advance, so once per
     // exercise — no re-run spam). Animates in, holds, fades out; non-interactive.
@@ -1737,6 +1791,10 @@
       // view instead, so the next Tab (and a screen reader) carries on from there.
       const hadFocus = old.contains(document.activeElement);
       const d = old.cloneNode(false); // same id/attrs (incl. hidden state), no children
+      // The painted view takes the focus (landView) unless it sits in the header,
+      // which every view shares (a tab, ⋯): anywhere else it was on a control of the
+      // view being replaced, in the hidden <main>, or already lost.
+      d._land = !focusInHeader();
       old.replaceWith(d);
       if (hadFocus) { d.tabIndex = -1; d.focus({ preventScroll: true }); }
       // Reset the body-anchored "↑ Top" button on every view change; only a reading
@@ -1744,6 +1802,19 @@
       document.getElementById('totop')?.classList.remove('show');
       return d;
     }
+    // A view change destroys or hides the control that had focus, and focus falls to
+    // <body>, where a screen reader hears nothing and loses its place. Land it on the
+    // new view's heading instead (tabindex=-1: a landing spot, not a Tab stop).
+    function landOn(el) {
+      if (!el || !el.isConnected) return;
+      if (!el.hasAttribute('tabindex')) el.tabIndex = -1;
+      el.focus({ preventScroll: true });
+    }
+    // Each renderer calls this once its view is painted (see freshDocview).
+    function landView(d) { if (d._land) landOn(d.querySelector('h1, h2') || d); }
+    function focusInHeader() { const a = document.activeElement; return !!(a && a.closest && a.closest('header')); }
+    // Lost: on <body>, or on a control that just became disabled.
+    function focusLost() { const a = document.activeElement; return !a || a === document.body || !!a.disabled; }
     function renderLogs(filter) {
       logFilter = filter || logFilter || 'all';
       const d = freshDocview();
@@ -1765,6 +1836,7 @@
       d.querySelectorAll('.logtab').forEach(b => b.onclick = () => renderLogs(b.dataset.f));
       document.getElementById('logcopy').onclick = () => copyText(dump || '(no entries)');
       document.getElementById('logclear').onclick = () => { LOGS.length = 0; renderLogs(logFilter); };
+      landView(d);
       d.scrollTop = 0;
     }
 
@@ -1797,6 +1869,7 @@
           : '<p>No books bundled. (Run the server / install the app with the library.)</p>');
       d.querySelectorAll('.libopen').forEach(a =>
         a.onclick = e => { e.preventDefault(); showView('library', a.dataset.file); });
+      landView(d);
       d.scrollTop = 0;
     }
 
@@ -1974,7 +2047,8 @@
           ],
           parent: host,
         });
-        try { ideView.scrollDOM.setAttribute('tabindex', '0'); } catch (_) {}
+        // A named stop, like Practice's (role=group: aria-label is not allowed on a bare <div>).
+        try { ideView.scrollDOM.setAttribute('tabindex', '0'); ideView.scrollDOM.setAttribute('role', 'group'); ideView.scrollDOM.setAttribute('aria-label', 'Code editor scroll region'); } catch (_) {}
         try { window.ideView = ideView; } catch (_) {}
       } else {
         host.innerHTML = '<textarea id="ideta" spellcheck="false" style="width:100%;height:100%;background:transparent;color:var(--fg);border:0;font-family:var(--mono);font-size:13px;padding:10px">' + esc(startDoc) + '</textarea>';
@@ -1991,18 +2065,21 @@
       if (!ideOpen) return;
       const status = document.getElementById('idestatus');
       const t = ideEditorText();
+      // #idestatus is a status region: write it only when the text CHANGES, or every
+      // keystroke re-announces "edited ✏️ · draft kept offline".
+      const say = m => { if (status && status.textContent !== m) status.textContent = m; };
       // Scratch files live in the Sandbox store (localStorage), not on disk — every
       // edit is persisted straight there, so they survive with no Save needed.
       if (ideOpen.scratch) {
         if (sbxFiles && sbxFiles.files[ideOpen.sbxIdx]) { sbxFiles.files[ideOpen.sbxIdx].code = t; sbxSaveFiles(); }
         ideOpen.content = t;
-        if (status) status.textContent = 'scratch · saved in your browser ✓';
+        say('scratch · saved in your browser ✓');
         return;
       }
       try {
         if (t === ideOpen.content) localStorage.removeItem(IDE_BUF + ideOpen.id);
         else localStorage.setItem(IDE_BUF + ideOpen.id, t);
-        if (status) status.textContent = (t === ideOpen.content) ? 'ready' : 'edited ✏️ · draft kept offline';
+        say((t === ideOpen.content) ? 'ready' : 'edited ✏️ · draft kept offline');
       } catch (_) {}
     }
     // ── Scratch files INSIDE the IDE (Paul: the Sandbox and the IDE are one thing) ──
@@ -2113,6 +2190,9 @@
       runCode(ideEditorText(), r => {
         ideConWrite((r.text || '').trim() || (r.note || '(no output)'), !r.passed);
         if (status) status.textContent = r.note ? r.note : (r.passed ? 'ran ✓' : 'error ✗');
+        // #idestatus says the outcome; a failure's first error line is announced too,
+        // instead of #ideout re-reading the whole dump (it is not live).
+        if (!r.passed) announceRun('', r.text);
       });
     }
     async function renderIde(entry) {
@@ -2146,12 +2226,12 @@
         +       '<button class="ghost" id="idesave" title="Save your edits to the file on disk">💾 Save</button>'
         +       '<button class="ghost" id="idereset" title="Discard your edits and reload the file">↺ Reset</button>'
         +       '<button class="ghost" id="idedelete" hidden title="Delete this scratch file">🗑 Delete</button>'
-        +       '<span class="badge" id="idestatus">ready</span></div>'
+        +       '<span class="badge" id="idestatus" role="status">ready</span></div>'
         +       '<div class="ide-host" id="idehost"></div>'
         +     '</div>'
         +     '<div class="ide-term closed" id="ideterm">'
         +       '<div class="ide-termbar">▤ Terminal — output of your last Run</div>'
-        +       '<pre class="ideout" id="ideout" aria-live="polite" aria-label="Program output" tabindex="0">Run a file to see its output here.</pre>'
+        +       '<pre class="ideout" id="ideout" role="region" aria-label="Program output" tabindex="0">Run a file to see its output here.</pre>'
         +     '</div>'
         +   '</div>'
         + '</div>';
@@ -2190,6 +2270,7 @@
       // chosen yet (so you can pick one), else respect the saved flags.
       ideSetSidebar(isPhone() ? (!ideOpen) : (st.sidebarOpen !== false));
       ideSetTerm(!!st.termOpen);
+      landView(d);
       d.scrollTop = 0;
     }
     // Per-group collapse state — phase groups get long (76 files across ~16
@@ -2378,10 +2459,12 @@
         pre.insertAdjacentElement('afterend', out);
         pre.insertAdjacentElement('afterend', bar); // order: pre, bar, out
         btn.onclick = () => {
-          btn.disabled = true; btn.textContent = 'running…';
+          // aria-disabled while it runs, not disabled: that dropped the focus it held.
+          if (btn.getAttribute('aria-disabled') === 'true') return;
+          btn.setAttribute('aria-disabled', 'true'); btn.textContent = 'running…';
           out.hidden = false; out.classList.remove('err'); out.textContent = 'compiling + running…';
           runCode(code, r => {
-            btn.disabled = false; btn.textContent = '▷ Run';
+            btn.removeAttribute('aria-disabled'); btn.textContent = '▷ Run';
             const clean = (r.text || '').replace(/\x1b\[[0-9;]*m/g, '').trim();
             out.classList.toggle('err', !r.passed);
             const body = (r.note ? r.note + (clean ? '\n\n' + clean : '') : clean);
@@ -2473,6 +2556,7 @@
       // about 89px at 360px wide, so longer ones ended in "…". The console line
       // above carries the detail (on-device, type-checks, which code).
       statusEl().textContent = passed ? (termuxOp === 'check' ? 'compiles ✓' : 'ran ✓') : 'failed';
+      announceRun(passed ? (termuxOp === 'check' ? 'Type-checks, no errors.' : 'Ran on-device.') : 'Failed on-device, exit ' + res.exit + '.', text);
       try { setInsights(true); } catch (_) {}
       renderTutor(passed, '', termuxOp); // Termux output is raw (no parsed code) → by-hand phrasing
       if (!passed) term.scrollToFirstError(); // open on the first error line, not the verdict
@@ -2565,7 +2649,9 @@
         predict.locked = true; updateRunGate();
       }
       const btns = ['runbtn','checkbtn','explainbtn'].map(id=>document.getElementById(id));
-      btns.forEach(x=>x && (x.disabled=true));
+      // aria-disabled while it runs, not disabled: disabling the button just pressed
+      // dropped its focus to <body>. Their click handlers skip a press meanwhile.
+      btns.forEach(x=>x && x.setAttribute('aria-disabled', 'true'));
       opBusy = true; // the terminal throbber spins only while this is in flight
       statusEl().textContent = op + '…';
       expandTerminal(); // output is coming — unfold the phone's collapsed terminal
@@ -2615,6 +2701,8 @@
                        : g('✓ passed') + d(' in ' + out.duration_ms + 'ms'))
           : r('✗ failed') + d(' in ' + out.duration_ms + 'ms — read it top-to-bottom, then fix & re-run');
         term.writeln(''); term.writeln(verdict);
+        announceRun(checkOnly ? 'Type-checks, no errors in ' + out.duration_ms + ' ms. Check doesn’t run it; press Run.'
+          : (out.passed ? 'Passed' : 'Failed') + ' in ' + out.duration_ms + ' ms.', out.raw_stderr);
         renderDiag(out); // sets lastCode (Assist/Dev only; '' in Learn — by-hand)
         setInsights(true); // a result exists now — surface the Insights drawer
         // Grade the locked guess ONCE, on the first result that settles it: a Run, or a
@@ -2703,7 +2791,7 @@
       } finally {
         // Re-enable — but leave Run/Check locked if Learn's predict gate is armed
         // again (they carry .gated).
-        btns.forEach(x=>x && (x.disabled = x.classList.contains('gated')));
+        btns.forEach(x => { if (!x) return; x.removeAttribute('aria-disabled'); x.disabled = x.classList.contains('gated'); });
         opBusy = false;
         refit();
       }
@@ -2743,8 +2831,9 @@
       const ttl = document.getElementById('exTitle');
       if (ttl && items.length) {
         const done = items.filter(e => e.status === 'done').length;
+        const isOpen = ttl.parentElement.classList.contains('open'); // the phone accordion
         ttl.innerHTML = 'Exercises <span class="excount">' + done + '/' + items.length + ' ✓</span>'
-          + '<span class="excaret" aria-hidden="true">▾</span>';
+          + '<button type="button" class="excaret" aria-controls="exlist" aria-expanded="' + isOpen + '" aria-label="Exercise list">▾</button>';
       }
       // Per-phase progress for the group headers (done/total), mirroring the
       // stage counts in the Lessons list — see how far you are within each topic.
@@ -2824,8 +2913,11 @@
             else { statusEl().textContent = 'could not switch exercise'; }
           } catch (_) { statusEl().textContent = 'offline — could not switch'; }
         };
-        el.onclick = go;
-        el.onkeydown = ev => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); go(); } };
+        // A switch rebuilds this list, destroying the focused row: land on the new
+        // exercise's title instead of <body> (see landOn).
+        const land = () => { if (focusLost()) landOn(document.getElementById('lessonTitle')); };
+        el.onclick = () => go().then(land);
+        el.onkeydown = ev => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); go().then(land); } };
       });
       if (focusedId) [...box.querySelectorAll('.ex[data-id]')].find(r => r.dataset.id === focusedId)?.focus();
       if (data && typeof data.total === 'number' && data.total > 0) {
@@ -2945,6 +3037,7 @@
       // give it a tab stop + name so axe's scrollable-region-focusable passes when
       // the code overflows (the .cm-content itself stays the primary edit target).
       cmView.scrollDOM.setAttribute('tabindex', '0');
+      cmView.scrollDOM.setAttribute('role', 'group'); // aria-label is not allowed on a bare <div>
       cmView.scrollDOM.setAttribute('aria-label', 'Code editor scroll region');
       window.__cm = {
         get: () => cmView.state.doc.toString(),
@@ -3016,8 +3109,10 @@
     function setMode(m) {
       mode = m;
       try { localStorage.setItem('ts-mode', m); } catch (_) {}
-      document.querySelectorAll('#modesw button').forEach(b =>
-        b.classList.toggle('sel', b.dataset.mode === m));
+      document.querySelectorAll('#modesw button').forEach(b => {
+        b.classList.toggle('sel', b.dataset.mode === m);
+        b.setAttribute('aria-pressed', b.dataset.mode === m ? 'true' : 'false'); // the mode, for screen readers
+      });
       // The predict bar is the active-recall gate: it pulses (needs-answer) in Learn
       // and is optional in Assist/Dev, but never dimmed: it stays operable there, and
       // opacity .55 put its label + buttons at 2.2–3.8:1 (WCAG 1.4.3). The switcher
@@ -3071,6 +3166,9 @@
       if (pb) { pb.classList.toggle('needs-answer', gated); pb.style.display = predict.locked ? 'none' : ''; }
       const lock = document.getElementById('predlock');
       if (lock) lock.disabled = !answered;
+      // The picked outcome is a pressed toggle, so a screen reader hears which one.
+      document.querySelectorAll('.pbtn[data-pred]').forEach(b =>
+        b.setAttribute('aria-pressed', String(answered && (b.dataset.pred === 'compiles') === predict.compiles)));
       const prose = document.getElementById('predictProse');
       if (prose) prose.style.display = (mode === 'learn' && !predict.locked) ? '' : 'none';
       const done = document.getElementById('predictDone');
@@ -3125,6 +3223,7 @@
           + ' · <span class="pv-verdict' + (perfect ? ' pv-perfect' : '') + '" style="color:' + color + '">' + esc(verdict) + '</span>';
         if (perfect) { const s = done.querySelector('.pv-perfect'); if (s) void s.offsetWidth; } // replay the pop
         predict.graded = true; // only once it is actually on screen
+        announce('Your prediction: ' + verdict); // #predictDone is not a live region
       }
       // Keep the legacy hidden span in sync (harmless if unseen).
       if (el) { el.textContent = verdict; el.style.color = color; }
@@ -3142,24 +3241,24 @@
         const t = r && r.term;
         if (!t) {
           box.innerHTML = `<span class="gl-term">${esc(term)}</span><span class="gl-def"> — no plain-language definition yet (coming soon).</span>`
-            + ` <span class="gl-x" id="glX" role="button" tabindex="0" title="close">✕</span>`;
+            + ` <button type="button" class="gl-x" id="glX" aria-label="Close the definition" title="close">✕</button>`;
         } else {
           const more = t.book_chapter
             ? ` <a class="gl-more" href="#" id="glMore">read more in the Book →</a>` : '';
           box.innerHTML =
             `<span class="gl-term">${esc(t.name)}</span><span class="gl-def"> ${mdInlineCode(t.definition)}</span>`
             + `<div class="gl-foot"><span class="gl-src">${esc(t.source)}</span>${more}`
-            + ` <span class="gl-x" id="glX" role="button" tabindex="0" title="close">✕</span></div>`;
+            + ` <button type="button" class="gl-x" id="glX" aria-label="Close the definition" title="close">✕</button></div>`;
           const a = document.getElementById('glMore');
           if (a) a.onclick = e => { e.preventDefault(); showView('book', t.book_chapter); };
         }
         box.hidden = false;
-        const cc = document.getElementById('conceptChip'); if (cc) cc.classList.add('open');
-        // Closing destroys the ✕, and keyboard focus with it: hand focus back to the chip.
-        const close = () => { box.hidden = true; box.innerHTML = ''; const c = document.getElementById('conceptChip'); if (c) { c.classList.remove('open'); c.focus(); } };
+        // The chip is a disclosure: aria-expanded tells a screen reader the definition
+        // opened right after it; closing hands focus back to the chip, not <body>.
+        const cc = document.getElementById('conceptChip'); if (cc) { cc.classList.add('open'); cc.setAttribute('aria-expanded', 'true'); }
+        const close = () => { box.hidden = true; box.innerHTML = ''; const c = document.getElementById('conceptChip'); if (c) { c.classList.remove('open'); c.setAttribute('aria-expanded', 'false'); c.focus(); } };
         const x = document.getElementById('glX');
-        if (x) { x.onclick = close;
-          x.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); close(); } }; }
+        if (x) x.onclick = close; // a real <button>: Enter and Space click it
       } catch (_) { /* offline without the local seam — leave the chip inert */ }
     }
 
@@ -3168,6 +3267,8 @@
     // the exercise carries.
     async function runHint() {
       if (nextHold) return; // solved, waiting for Next →: the server's hint is for the NEXT exercise
+      // aria-disabled after the last rung (below), so the h shortcut stops there too.
+      if (document.getElementById('hintbtn')?.getAttribute('aria-disabled') === 'true') return;
       try {
         const h = await fetch('api/hint?level=' + (hintLevel + 1)).then(r => r.json());
         if (!h || !h.text) return;
@@ -3178,7 +3279,9 @@
         div.innerHTML = `<span class="c">hint ${h.level}/${h.max_level}${last ? ' · last resort' : ''}</span> ${esc(h.text)}`;
         document.getElementById('hintbox').appendChild(div);
         setInsights(true); // the hint renders in the Insights drawer — reveal it
-        if (last) document.getElementById('hintbtn').disabled = true;
+        announce('Hint ' + h.level + ' of ' + h.max_level + (last ? ', last resort' : '') + ': ' + h.text);
+        // aria-disabled, not disabled: disabling the button just pressed dropped its focus.
+        if (last) document.getElementById('hintbtn').setAttribute('aria-disabled', 'true');
       } catch (_) {}
     }
 
@@ -3410,7 +3513,7 @@
       hintLevel = 0;
       runCodes = []; // …and Explain (?) forgets the previous exercise's error codes
       const hb = document.getElementById('hintbox'); if (hb) hb.innerHTML = '';
-      const hbtn = document.getElementById('hintbtn'); if (hbtn) hbtn.disabled = false;
+      const hbtn = document.getElementById('hintbtn'); if (hbtn) hbtn.removeAttribute('aria-disabled');
       renderTutor(null); // back to the pre-run prompt for the new exercise
       setInsights(insightsPinned()); // collapse the drawer for a clean IDE (unless pinned)
       // fresh exercise → clear the last run too: its output, parsed diagnostics and
@@ -3431,7 +3534,7 @@
       // The concept is a tappable glossary chip — tap it for a plain-language,
       // offline definition pulled from the bundled Book (never the exercise's fix).
       const chip = j.concept
-        ? ` · <span class="gloss" id="conceptChip" role="button" tabindex="0" data-term="${esc(j.concept)}" title="Tap for a plain-language definition">${esc(j.concept)}</span>`
+        ? ` · <span class="gloss" id="conceptChip" role="button" tabindex="0" aria-expanded="false" aria-controls="glossbox" data-term="${esc(j.concept)}" title="Tap for a plain-language definition">${esc(j.concept)}</span>`
         : '';
       // Link to the textbook lesson that teaches this exercise's concept (closes
       // the read→practice loop): read the lesson, then come back and write it.
@@ -3584,7 +3687,7 @@
     // already superseded. If the server has no analyzer (available:false) or is
     // unreachable (opened via file://), the panel is left untouched — never an
     // error state, since live analysis is a bonus layer, not the source of truth.
-    let liveDiagTimer = null, liveDiagSeq = 0, liveDiagBusy = false, liveDiagPending = false;
+    let liveDiagTimer = null, liveDiagSeq = 0, liveDiagBusy = false, liveDiagPending = false, liveDiagSaid = -1;
     function scheduleLiveDiag() {
       if (mode !== 'dev') return;         // Dev is the live-analysis tier
       clearTimeout(liveDiagTimer);
@@ -3605,6 +3708,9 @@
         }).then(x => x.json());
         // Ignore a stale reply (a newer edit fired) or a tier switch mid-request.
         if (seq === liveDiagSeq && mode === 'dev' && r && r.available) {
+          // #diag is not live (it talked over the typing): say the count, when it changes.
+          const n = (r.diagnostics || []).length;
+          if (n !== liveDiagSaid) { liveDiagSaid = n; announce((n ? n + (n === 1 ? ' problem' : ' problems') : 'No problems') + ' found as you type'); }
           if (r.diagnostics && r.diagnostics.length) {
             renderDiag({ diagnostics: r.diagnostics }); // reuse parsed panel + gutter marks
           } else {
@@ -3783,6 +3889,7 @@
     // top bar to just Practice (IDE) + Learn — the rest is a tap away, not on screen.
     const LEARN_VIEWS = ['learn', 'lessons', 'quizzes', 'cheatsheets', 'book', 'glossary', 'library', 'roadmap', 'studyguide', 'logs'];
     async function showView(view, chapter, anchor) {
+      const from = curView;
       curView = view;
       // Leaving the IDE always drops its fullscreen body class, so the state can
       // never bleed into another view (the class hides the header/footer).
@@ -3800,7 +3907,14 @@
       const lh = document.getElementById('lessonHandle');
       if (lh) lh.hidden = (view !== 'practice') || !curLessonId;
       if (view !== 'practice') closeLessonDrawer();
-      if (view === 'practice') { m.hidden = false; d.hidden = true; refit(); return; }
+      if (view === 'practice') {
+        // Back to Practice: focus lands on the exercise title (see landOn), unless it
+        // was there already or sits in the header, which keeps it (a tab, ⋯).
+        const land = from !== 'practice' && !focusInHeader();
+        m.hidden = false; d.hidden = true; refit();
+        if (land) landOn(document.getElementById('lessonTitle'));
+        return;
+      }
       m.hidden = true; d.hidden = false;
       if (view === 'learn') {
         await renderLearnHub();
@@ -3934,6 +4048,7 @@
             : '<p>no quizzes seeded — run the server with the bundled quizzes/.</p>');
         d.querySelectorAll('.quizjump').forEach(a =>
           a.onclick = e => { e.preventDefault(); renderQuizzes(a.dataset.id); });
+        landView(d);
         d.scrollTop = 0;
         return;
       }
@@ -3961,6 +4076,7 @@
       // Wire the prev/next quiz cards (same jump class as the list).
       d.querySelectorAll('.quizjump').forEach(a => a.onclick = e => { e.preventDefault(); renderQuizzes(a.dataset.id); });
       wirePhaseBackLinks(d);
+      landView(d);
       d.scrollTop = 0;
     }
 
@@ -3982,6 +4098,7 @@
             : '<p>no cheatsheets seeded — run the server with the bundled cheatsheets/.</p>');
         d.querySelectorAll('.cheatjump').forEach(a =>
           a.onclick = e => { e.preventDefault(); renderCheatsheets(a.dataset.id); });
+        landView(d);
         d.scrollTop = 0;
         return;
       }
@@ -4001,6 +4118,7 @@
       // Wire the prev/next cheatsheet cards (same jump class as the list).
       d.querySelectorAll('.cheatjump').forEach(a => a.onclick = e => { e.preventDefault(); renderCheatsheets(a.dataset.id); });
       wirePhaseBackLinks(d);
+      landView(d);
       d.scrollTop = 0;
     }
 
@@ -4079,6 +4197,7 @@
         a.onclick = e => { e.preventDefault(); showView('quizzes', a.dataset.quiz); });
       d.querySelectorAll('.booklink').forEach(a =>
         a.onclick = e => { e.preventDefault(); showView('library', a.dataset.file, a.dataset.page); });
+      landView(d);
       d.scrollTop = 0;
     }
 
@@ -4207,7 +4326,7 @@
       d.innerHTML = '<h1>📚 Learn</h1>'
         + '<p style="color:var(--fg-dim)">Your offline curriculum, references, and progress — everything but the editor lives here.</p>'
         + '<div class="hubsearchwrap"><input id="hubsearch" class="hubsearch" type="search" placeholder="🔎 Search everything — lessons, the Book, cheatsheets, glossary…" aria-label="Search all learning material" autocomplete="off" autocapitalize="off" spellcheck="false"></div>'
-        + '<div id="hubresults" hidden aria-live="polite"></div>'
+        + '<div id="hubresults" hidden></div>'
         + '<div id="hubbody">'
         + (exTotal || lessons.length
             ? `<div class="hubprog">📝 <b>${exDone}/${exTotal}</b> exercises · 🎓 <b>${nRead}/${lessons.length}</b> lessons · ❓ <b>${nQuiz}/${quizzes.length}</b> quizzes</div>` : '')
@@ -4233,6 +4352,7 @@
         if (hs) { let t = null;
           hs.addEventListener('input', () => { clearTimeout(t); t = setTimeout(() => hubSearch(hs.value), 220); });
           hs.addEventListener('keydown', e => { if (e.key === 'Escape') { hs.value = ''; hubSearch(''); } }); } }
+      landView(d);
       d.scrollTop = 0;
     }
     // Unified "search everything" over the bundled learning material — lessons,
@@ -4273,6 +4393,9 @@
         + section('📋 Cheatsheets', chRows) + section('📚 Glossary', glRows);
       box.innerHTML = html || `<p class="hubnomatch">No matches for “${esc(q)}”.</p>`;
       box.hidden = false; if (body) body.hidden = true;
+      // The count, not every hit and snippet (#hubresults is not live).
+      const n = (les.hits || []).length + (bk.hits || []).length + (ch.hits || []).length + glHits.length;
+      announce(n ? n + (n === 1 ? ' match' : ' matches') : 'No matches');
       box.querySelectorAll('.hubhit').forEach(a => a.onclick = e => {
         e.preventDefault();
         const k = a.dataset.kind, id = a.dataset.id;
@@ -4296,6 +4419,7 @@
               : '<p>Study guide unavailable.</p>');
       d.querySelectorAll('.lessonback').forEach(a =>
         a.onclick = e => { e.preventDefault(); showView('lessons'); });
+      landView(d);
       d.scrollTop = 0;
     }
 
@@ -4347,9 +4471,10 @@
       if (!dr.contains(document.activeElement)) dr._opener = document.activeElement; // see closeLessonDrawer
       slideDrawerIn(dr, ov);
       // The drawer comes BEFORE <main> in the DOM, so Tab from the link or pull tab
-      // that opened it went on through the page under the overlay. Move focus in,
-      // as an explanation does (arrows / PgDn read it; Esc hands focus back).
-      body.focus({ preventScroll: true });
+      // that opened it went on through the page under the overlay. A modal now: the
+      // page behind goes inert and focus moves into the reading (Esc, × or the
+      // overlay hand it back).
+      pageInert(true); body.focus({ preventScroll: true });
       try {
         const l = await fetch('api/lessons?id=' + encodeURIComponent(lessonId)).then(r => r.json()).then(j => j.lesson);
         // The header must MATCH the content: show the lesson's own title, not the
@@ -4377,6 +4502,7 @@
       // hand it back to what opened it, before aria-hidden lands on the drawer around
       // it. Not if focus has moved on outside the drawer since (Esc in the editor,
       // say); a click on the overlay leaves nothing focused, so that still hands it back.
+      pageInert(false); // first: an opener that is still inert can't take focus back
       const at = document.activeElement;
       if ((!at || at === document.body || dr.contains(at)) && dr._opener && dr._opener.isConnected) dr._opener.focus({ preventScroll: true });
       dr._opener = null;
@@ -4410,6 +4536,11 @@
       cancelAnimationFrame(dr._slideIn || 0);
       dr._slideIn = requestAnimationFrame(() => { dr._slideIn = 0; dr.classList.add('open'); ov.classList.add('open'); });
     }
+    // While a modal overlay shows (the lesson drawer, the keys help) the page behind is
+    // inert, as aria-modal tells a screen reader: Tab and its cursor stay inside.
+    function pageInert(on) {
+      document.querySelectorAll('header, main, #docview, #lessonHandle, .footer').forEach(el => { el.inert = on; });
+    }
     // Explain → the same drawer, as reading text. `rustc --explain` prints raw
     // Markdown when piped (``` fences and all); render it like a lesson
     // (mdToHtml), opened at the TOP — the console only ever showed its tail.
@@ -4430,6 +4561,7 @@
       if (!dr.contains(document.activeElement)) dr._opener = document.activeElement; // see closeLessonDrawer
       slideDrawerIn(dr, ov);
       body.scrollTop = 0;
+      pageInert(true); // a modal, as for a lesson (see openLessonDrawer)
       body.focus({ preventScroll: true });
       statusEl().textContent = ok ? 'explained' : 'explain ✗'; // short: see the on-device status
     }
@@ -4616,10 +4748,12 @@
               bh.hidden = extra.length === 0;
               bh.querySelectorAll('.lessonjump').forEach(a =>
                 a.onclick = e => { e.preventDefault(); renderLessons(a.dataset.id); });
-              if (nm) nm.hidden = shown !== 0 || extra.length > 0;
+              // "No lessons match" is a status message: say it as it appears.
+              if (nm) { const was = nm.hidden; nm.hidden = shown !== 0 || extra.length > 0; if (was && !nm.hidden) announce(nm.textContent); }
             }, 200);
           });
         }
+        landView(d);
         d.scrollTop = 0;
         return;
       }
@@ -4754,6 +4888,7 @@
       // has its own key, so a fresh lesson still starts at the top.
       let lessonPos = 0;
       try { lessonPos = parseInt(localStorage.getItem('ts-lesson-pos:' + id) || '0', 10) || 0; } catch (_) {}
+      landView(d);
       d.scrollTop = lessonPos;
     }
 
@@ -4797,7 +4932,7 @@
       }).join('');
       d.innerHTML = '<h1>Glossary</h1>'
         + `<p style="color:var(--fg-dim)">Plain-language definitions of the Rust terms used across the exercises — fully offline. ${terms.length} terms.</p>`
-        + '<div class="booksearch"><input id="glq" type="search" placeholder="Filter terms…" aria-label="Filter glossary terms" autocomplete="off" autocapitalize="off" spellcheck="false"><span class="bscount" id="glCount"></span></div>'
+        + '<div class="booksearch"><input id="glq" type="search" placeholder="Filter terms…" aria-label="Filter glossary terms" autocomplete="off" autocapitalize="off" spellcheck="false"><span class="bscount" id="glCount" role="status"></span></div>'
         + `<div id="glossList">${cards}</div>`;
       d.querySelectorAll('.gloss-more[data-ch]').forEach(a =>
         a.onclick = e => { e.preventDefault(); showView('book', a.dataset.ch); });
@@ -4813,6 +4948,7 @@
         const c = document.getElementById('glCount');
         if (c) c.textContent = needle ? `${shown} match${shown === 1 ? '' : 'es'}` : '';
       });
+      landView(d);
     }
 
     // The embedded Rust Book reader. With no chapter it renders the table of
@@ -4837,6 +4973,8 @@
             `<li><a href="#" class="bookhit" data-ch="${esc(h.chapter)}" data-term="${esc(q)}">${esc(h.title)}<span class="bscount">${h.count} ${h.count === 1 ? 'match' : 'matches'}</span></a>`
             + `<small>${esc(h.snippet)}</small></li>`).join('') + '</ul>'
         : `<p style="color:var(--fg-dim)">no chapters match “${esc(q)}”.</p>`;
+      // The count, not every hit and snippet (#bsr is not live).
+      announce(hits.length ? hits.length + (hits.length === 1 ? ' chapter matches' : ' chapters match') : 'No chapters match');
       box.querySelectorAll('.bookhit').forEach(a =>
         a.onclick = e => { e.preventDefault(); renderBook(a.dataset.ch, null, a.dataset.term); });
     }
@@ -4899,9 +5037,9 @@
       btn.onclick = () => {
         // calmMotion: the OS reduced-motion setting, or ⋯ → Reduce motion.
         d.scrollTo({ top: 0, behavior: calmMotion() ? 'auto' : 'smooth' });
-        // The button hides at the top: bring keyboard focus up with the view, or the
-        // next Tab would carry on from a hidden button at the bottom.
-        d.tabIndex = -1; d.focus({ preventScroll: true });
+        // At the top the button hides, out of the Tab order: hand focus to the
+        // view's heading, where the reading starts again, not to <body>.
+        landOn(d.querySelector('h1, h2') || d);
       };
       let saveT = null;
       d.addEventListener('scroll', () => {
@@ -4932,7 +5070,7 @@
         catch (_) { d.innerHTML = '<h1>📖 The Rust Book</h1><p>Book unavailable (open via the local server).</p>' + quick; wire(); return; }
         const items = toc.chapters || [];
         d.innerHTML = '<h1>📖 The Rust Book</h1>'
-          + '<div class="booksearch"><input id="bsq" type="search" placeholder="Search the book…" aria-label="Search the Rust Book" autocomplete="off" autocapitalize="off" spellcheck="false"><div id="bsr" class="bsresults" aria-live="polite"></div></div>'
+          + '<div class="booksearch"><input id="bsq" type="search" placeholder="Search the book…" aria-label="Search the Rust Book" autocomplete="off" autocapitalize="off" spellcheck="false"><div id="bsr" class="bsresults"></div></div>'
           + `<p style="color:var(--fg-dim)">${items.length} embedded chapters — click one to read, fully offline.</p>`
           + quick
           + (items.length
@@ -4947,6 +5085,7 @@
           inp.addEventListener('input', () => { clearTimeout(t); t = setTimeout(() => runBookSearch(inp.value), 200); });
           inp.addEventListener('keydown', e => { if (e.key === 'Enter') { clearTimeout(t); runBookSearch(inp.value); } });
         }
+        landView(d);
         d.scrollTop = 0;
         return;
       }
@@ -4992,9 +5131,10 @@
       wire();
       // Scroll priority: a book_ref anchor (heading id) wins; else a search term
       // scrolls to the first element containing it (with a brief highlight); else top.
+      // Focus lands on a cited section itself, else on the title (landView, below).
       if (anchor) {
         const target = d.querySelector('#' + (window.CSS && CSS.escape ? CSS.escape(anchor) : anchor));
-        if (target) { target.scrollIntoView({ block: 'start' }); return; }
+        if (target) { target.scrollIntoView({ block: 'start' }); if (d._land) landOn(target); return; }
         d.scrollTop = 0;
       } else if (term) {
         const lc = term.toLowerCase();
@@ -5014,6 +5154,8 @@
         try { savedPos = parseInt(localStorage.getItem('ts-book-pos:' + chapter) || '0', 10) || 0; } catch (_) {}
         d.scrollTop = savedPos;
       }
+      // preventScroll (landOn): the scrolling above still decides what shows.
+      landView(d);
     }
     document.querySelectorAll('.tab[data-view]').forEach(t => t.onclick = () => showView(t.dataset.view));
 
@@ -5044,15 +5186,18 @@
       applyKeysOn();
     });
     applyKeysOn();
+    // A modal (aria-modal): focus moves into the card and the page behind goes inert
+    // while it shows; closing hands focus back (it stayed behind the backdrop).
     function toggleKeysHelp(force) {
       const el = document.getElementById('keyshelp');
       if (!el) return;
       const open = force === undefined ? el.hidden : !!force;
-      if (open === !el.hidden) return; // already open / closed
+      if (open !== el.hidden) return; // already so
+      if (open) el._back = document.activeElement;
       el.hidden = !open;
-      // It is an aria-modal dialog: focus moves into it, and back where it was on close.
-      if (open) { el._opener = document.activeElement; el.querySelector('.keyshelp-card').focus(); }
-      else if (el._opener && el._opener.isConnected) { el._opener.focus(); el._opener = null; }
+      pageInert(open);
+      if (open) el.querySelector('.keyshelp-card')?.focus();
+      else if (el._back && el._back.isConnected) { el._back.focus(); el._back = null; }
     }
     document.addEventListener('keydown', e => {
       // Esc closes the keys-help — only consume it when the help is actually open,
@@ -5067,7 +5212,7 @@
       // <textarea>), so typing `let` opened Lessons, `r` ran, Rust's `?` opened
       // this help, and each such letter was eaten (WCAG 2.1.4).
       const editing = e.target.isContentEditable || !!(e.target.closest && e.target.closest('.cm-editor'));
-      if (tag === 'textarea' || tag === 'input' || editing || e.metaKey || e.ctrlKey || e.altKey) return;
+      if (tag === 'textarea' || tag === 'input' || tag === 'select' || editing || e.metaKey || e.ctrlKey || e.altKey) return;
       if (!keysOn) return; // switched off in the ⋯ menu
       if (document.querySelector('dialog[open]')) return; // a question (ask) is open: its keys are its own
       const fn = KEYMAP[e.key.toLowerCase()];
@@ -5092,11 +5237,10 @@
         t.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); showView(t.dataset.view); } });
       });
       statusEl()?.setAttribute('aria-live', 'polite');
-      document.getElementById('diag')?.setAttribute('aria-live', 'polite');
+      // Not #diag: it re-read itself after every run and as Dev types; a run is summed
+      // up by announceRun() instead. (🌓 is named in the markup.)
       document.getElementById('predverdict')?.setAttribute('aria-live', 'polite');
-      document.getElementById('theme')?.setAttribute('aria-label', 'Toggle dark / light theme');
       document.getElementById('resetbtn')?.setAttribute('aria-label', 'Reset code to the original starter');
-      document.getElementById('xterm')?.setAttribute('aria-label', 'Compiler output terminal');
     })();
     // (Exercise-list clicks are wired in renderList → POST /api/select, which also
     // rebuilds the list; the old init-time visual-only `.sel` toggle here was dead
@@ -5107,6 +5251,7 @@
       const h = document.documentElement;
       h.dataset.theme = h.dataset.theme === 'dark' ? 'light' : 'dark';
       try { localStorage.setItem('ts-theme', h.dataset.theme); } catch (_) {}
+      syncThemeBtn();
     };
     try {
       const saved = localStorage.getItem('ts-theme');
@@ -5123,6 +5268,11 @@
         document.documentElement.dataset.theme = 'light';
       }
     } catch (_) {}
+    // 🌓 is a toggle named "Light theme": pressed = the light theme is on.
+    function syncThemeBtn() {
+      document.getElementById('theme')?.setAttribute('aria-pressed', String(document.documentElement.dataset.theme === 'light'));
+    }
+    syncThemeBtn();
     // ── Insights drawer: the right pane (Diagnostics / Book refs / Tutor) is
     // supplementary — the real run output is the centre terminal — so it stays
     // collapsed until the learner opens it or a Run/Hint surfaces something worth
@@ -5227,8 +5377,10 @@
     };
     applyMotion((() => { try { return localStorage.getItem(MOTION_KEY) === 'reduce'; } catch (_) { return false; } })());
     // run/check/explain → live POST to the local server, raw output into xterm.
-    document.getElementById('runbtn').onclick = () => runOp('run');
-    document.getElementById('checkbtn').onclick = () => runOp('check');
+    // A press while a run is in flight (aria-disabled, see runOp) is ignored.
+    const idle = id => document.getElementById(id).getAttribute('aria-disabled') !== 'true';
+    document.getElementById('runbtn').onclick = () => { if (idle('runbtn')) runOp('run'); };
+    document.getElementById('checkbtn').onclick = () => { if (idle('checkbtn')) runOp('check'); };
     document.getElementById('nextbtn').onclick = goNext; // after a pass (see holdForNext)
     // editable code: persist on input, reset restores the original starter.
     editorEl().addEventListener('input', markEdited);
@@ -5333,19 +5485,13 @@
       const pane = document.querySelector('main > .pane:first-child');
       const ttl = document.getElementById('exTitle');
       if (pane && ttl) {
-        // A button only where it toggles: the accordion is phone-only, so on desktop
-        // the heading stays a heading, not an inert "button" Tab stop.
-        const syncRole = () => {
-          if (isPhone()) { ttl.setAttribute('role', 'button'); ttl.setAttribute('tabindex', '0');
-            ttl.setAttribute('aria-expanded', pane.classList.contains('open') ? 'true' : 'false'); }
-          else { ttl.removeAttribute('role'); ttl.removeAttribute('tabindex'); ttl.removeAttribute('aria-expanded'); }
-        };
-        syncRole();
-        try { window.matchMedia('(max-width:760px)').addEventListener('change', syncRole); } catch (_) {}
+        // The <h2> stays a heading: role=button took it out of heading navigation and,
+        // on desktop, left a Tab stop that did nothing. Keyboards and screen readers
+        // use the phone-only fold <button> inside it (renderList), whose click bubbles
+        // here; a tap anywhere on the header still folds the list.
         const toggle = () => { if (!isPhone()) return; pane.classList.toggle('open');
-          ttl.setAttribute('aria-expanded', pane.classList.contains('open') ? 'true' : 'false'); };
+          ttl.querySelector('.excaret')?.setAttribute('aria-expanded', pane.classList.contains('open') ? 'true' : 'false'); };
         ttl.addEventListener('click', toggle);
-        ttl.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); } });
       }
       // Console fold: the chevron collapses the output to its title bar so the
       // editor gets the room. The choice persists; default = folded on phones
@@ -5363,7 +5509,10 @@
     })();
     function syncConsoleChevron() {
       const t = document.querySelector('.terminal'), c = document.getElementById('tfold');
-      if (t && c) c.textContent = t.classList.contains('tcollapsed') ? '▸' : '▾';
+      if (!t || !c) return;
+      const folded = t.classList.contains('tcollapsed');
+      c.textContent = folded ? '▸' : '▾';
+      c.setAttribute('aria-expanded', folded ? 'false' : 'true'); // the fold state, for screen readers
     }
     function toggleConsole() {
       const t = document.querySelector('.terminal'); if (!t) return;
@@ -5397,6 +5546,8 @@
       if (predict.compiles === null) return;
       predict.locked = true; predict.src = editorEl().value; updateRunGate();
       document.getElementById('runbtn')?.focus(); // the lock button just vanished — Run is next
+      announce('Predicted: ' + (predict.compiles ? 'passes' : 'fails') + (predict.code.trim() ? ' (' + predict.code.trim() + ')' : '')
+        + (mode === 'learn' ? '. Press Run.' : '.')); // focus is on Run: say what was locked
     };
     document.getElementById('predcode').addEventListener('input', e => { predict.code = e.target.value; updateRunGate(); });
     // Enter in the error-code box = Run — the natural finishing gesture after
@@ -5406,6 +5557,9 @@
     document.getElementById('predcode').addEventListener('keydown', e => {
       if (e.key !== 'Enter' || predict.compiles === null) return;
       e.preventDefault();
+      // Running locks the guess and collapses this box: move focus to Run first
+      // (aria-disabled, not disabled, during the run, so it keeps focus there).
+      document.getElementById('runbtn')?.focus();
       // The run locks the guess, which hides this box with the question: once the
       // run is in, focus goes to Run (as after "Lock guess"), or to the next question
       // if a pass moved on, not left in a hidden box or on <body>.
@@ -5461,6 +5615,7 @@
     // hand, so lastCode is always '' there) plus any the Diagnostics panel lists
     // (Dev's live check). One → explain it now; several → pick one; none → type one.
     document.getElementById('explainbtn').onclick = async () => {
+      if (!idle('explainbtn')) return; // a run is in flight (see runOp)
       const listed = [...document.querySelectorAll('#diag .diagcode[data-code]')].map(el => el.dataset.code);
       const codes = [...new Set(runCodes.concat(listed))].filter(c => /^E\d{3,4}$/.test(c));
       const picked = codes.length === 1 ? codes[0] : await ask(codes.length

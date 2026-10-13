@@ -275,8 +275,10 @@ test('keyboard-14: ↑ Top takes focus up with the view, and is no Tab stop whil
   await expect(top).toHaveClass(/\bshow\b/);
   await top.focus();
   await page.keyboard.press('Enter');
-  // Before: focus stayed on the button, which then hid at the top.
-  await expect(page.locator('#docview'), 'focus goes up with the view').toBeFocused();
+  // Before: focus stayed on the button, which then hid at the top. Now it lands on
+  // the view's heading, where reading starts again (a screen reader says it).
+  expect(await page.evaluate(() => !!document.activeElement.closest('#docview')), 'focus goes up with the view').toBe(true);
+  await expect(page.locator('#docview').locator('h1, h2').first(), 'on its heading').toBeFocused();
   await page.waitForFunction(() => document.querySelector('#docview').scrollTop < 5);
   await expect(top).not.toHaveClass(/\bshow\b/);
   await page.evaluate(() => showView('practice'));
@@ -336,7 +338,7 @@ test('keyboard-16: closing the concept definition by keyboard hands focus back t
   await expect(chip, 'focus is back on the chip').toBeFocused();
 });
 
-test('keyboard-17: the Exercises heading is a button only where it toggles (phones)', async ({ page }) => {
+test('keyboard-17: the Exercises heading stays a heading; phones fold the list with a real button', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 720 });
   await page.goto('/');
   await page.waitForSelector('#exlist .ex[data-id]');
@@ -344,7 +346,10 @@ test('keyboard-17: the Exercises heading is a button only where it toggles (phon
   await expect(page.getByRole('button', { name: /^Exercises/ }), 'no inert button on desktop').toHaveCount(0);
   await expect(page.getByRole('heading', { name: /^Exercises/ }), 'a heading there').toHaveCount(1);
   await page.setViewportSize({ width: 390, height: 844 });
-  const toggle = page.getByRole('button', { name: /^Exercises/ });
-  await expect(toggle, 'the phone accordion toggle').toHaveCount(1);
+  // On phones too the heading stays a heading (role=button on it hid it from
+  // heading navigation); the fold is a real button inside it.
+  await expect(page.getByRole('heading', { name: /^Exercises/ })).toHaveCount(1);
+  const toggle = page.getByRole('button', { name: 'Exercise list', exact: true });
+  await expect(toggle, 'the phone fold button').toHaveCount(1);
   await expect(toggle).toHaveAttribute('aria-expanded', 'false');
 });
