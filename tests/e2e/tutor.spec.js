@@ -43,7 +43,7 @@ test('Check never claims a run or completes; a passing Run advances to a clean e
   await page.evaluate((v) => window.__cm.set(v), FIX);
 
   await page.locator('#checkbtn').click();
-  await expect(page.locator('#statusline')).toHaveText(/type-checks/, { timeout: 30_000 });
+  await expect(page.locator('#statusline')).toHaveText(/compiles/, { timeout: 30_000 });
   const tutor = page.locator('#tutorbox');
   await expect(tutor).not.toContainText(/Solved|compiles and runs/);
   await expect(tutor).toContainText(/press Run/i);

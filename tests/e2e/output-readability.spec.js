@@ -104,7 +104,7 @@ test('a rejected lookup answers in the drawer and leaves the console alone', asy
   // Junk typed at the ? prompt: the server only takes letters/digits, so it 400s.
   await page.evaluate(() => runOp('explain', { code: 'E0381?' }));
   await expect(page.locator('#lessonDrawerBody')).toContainText("Couldn't get an explanation");
-  await expect(page.locator('#statusline')).toContainText('explain failed');
+  await expect(page.locator('#statusline')).toContainText('explain ✗');
   await expect(page.locator('#conout'), 'the console keeps what it showed').toContainText('current exercise');
 });
 

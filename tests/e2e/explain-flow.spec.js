@@ -41,7 +41,8 @@ test.describe('Explain uses the code on screen, in-page, and never reads as a pa
     ]);
     expect(JSON.parse(req.postData()).code, 'the code the terminal shows').toBe('E0381');
     // The explain op succeeding is not the exercise passing.
-    await expect(page.locator('#statusline')).toHaveText('explained E0381', { timeout: 30_000 });
+    await expect(page.locator('#statusline')).toHaveText('explained', { timeout: 30_000 });
+    await expect(page.locator('#lessonDrawerTitle')).toContainText('E0381');
     await expect(page.locator('#conout')).not.toContainText(/passed in \d+ms/);
   });
 
@@ -61,7 +62,8 @@ test.describe('Explain uses the code on screen, in-page, and never reads as a pa
       choices.filter({ hasText: 'E0599' }).click(),
     ]);
     expect(JSON.parse(req.postData()).code).toBe('E0599');
-    await expect(page.locator('#statusline')).toHaveText('explained E0599', { timeout: 30_000 });
+    await expect(page.locator('#statusline')).toHaveText('explained', { timeout: 30_000 });
+    await expect(page.locator('#lessonDrawerTitle')).toContainText('E0599');
     // Explain is reference text: the run's parsed codes stay (no "passed" row).
     await expect(page.locator('#diag .diagcode')).toHaveCount(2);
     await expect(page.locator('#diag')).not.toContainText('passed');
@@ -77,6 +79,7 @@ test.describe('Explain uses the code on screen, in-page, and never reads as a pa
       input.press('Enter'),
     ]);
     expect(JSON.parse(req.postData()).code).toBe('E0384');
-    await expect(page.locator('#statusline')).toHaveText('explained E0384', { timeout: 30_000 });
+    await expect(page.locator('#statusline')).toHaveText('explained', { timeout: 30_000 });
+    await expect(page.locator('#lessonDrawerTitle')).toContainText('E0384');
   });
 });

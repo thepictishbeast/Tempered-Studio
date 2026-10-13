@@ -636,6 +636,29 @@
   .lesson-handle[hidden]{display:none}
   .lesson-handle .lh-lbl{font-size:9px;font-weight:700;letter-spacing:.04em;color:var(--fg-dim);writing-mode:vertical-rl}
   .lesson-handle:hover{border-color:var(--accent)}
+  /* Phone: the page is one column that scrolls UNDER this fixed tab, so it sat
+     over whatever passed its band (walkthrough, 390x844: the prediction box's
+     left edge; the editor, terminal, exercise list and Insights in turn). Give
+     the tab a set width (emoji fonts differ by a few px) and keep that strip
+     clear while it shows. The strip narrows the editor toolbar too, so its
+     buttons keep their size and a long status ends in "…" instead of pushing
+     ▷ Run onto two lines. (display:block: the gamify .badge rule makes the
+     status a flex box, where text-overflow does nothing.) */
+  @media (max-width:760px){
+    :root{--lesson-tab-w:26px}
+    .lesson-handle{width:var(--lesson-tab-w);padding-left:0;padding-right:0}
+    .lesson-handle:not([hidden]) ~ main{padding-left:var(--lesson-tab-w)}
+    .editor .etools > *{flex-shrink:0}
+    .editor .etools #statusline{display:block;flex-shrink:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
+  }
+  /* At 320px the strip leaves the status badge about 50px, too tight for
+     "passed" / "failed" in some fonts (they end in "…"). Trim the side padding
+     of ▷ Run and the badge, not the icon buttons' touch width. #runbtn is an id
+     so it outranks the phone `.etools .run` padding further down. */
+  @media (max-width:340px){
+    .editor .etools #runbtn{padding-left:9px;padding-right:9px}
+    .editor .etools #statusline{padding-left:4px;padding-right:4px}
+  }
   .pbtn { background:var(--bg-2); color:var(--fg); border:1px solid var(--line); border-radius:8px;
     padding:5px 10px; cursor:pointer; font-size:12.5px; transition:.12s; }
   .pbtn:hover { border-color:var(--accent); }
@@ -2283,7 +2306,10 @@
       const okMsg = termuxOp === 'check' ? '✓ type-checks — no errors' : '✓ compiled & ran on-device';
       term.writeln(passed ? g(okMsg) + d(' — native rustc via Termux')
                           : r('✗ exit ' + res.exit) + d(' — read the output above; tap 📋 copy to share it'));
-      statusEl().textContent = passed ? (termuxOp === 'check' ? 'type-checks ✓' : 'ran on-device ✓') : 'failed (on-device)';
+      // Status words stay short: on a phone the one-row toolbar leaves the badge
+      // about 89px at 360px wide, so longer ones ended in "…". The console line
+      // above carries the detail (on-device, type-checks, which code).
+      statusEl().textContent = passed ? (termuxOp === 'check' ? 'compiles ✓' : 'ran ✓') : 'failed';
       try { setInsights(true); } catch (_) {}
       renderTutor(passed, '', termuxOp); // Termux output is raw (no parsed code) → by-hand phrasing
       if (!passed) term.scrollToFirstError(); // open on the first error line, not the verdict
@@ -2320,7 +2346,7 @@
     function explainDone(ok, code) {
       term.writeln(ok ? d('— what ' + code + ' means (rustc --explain). Your code was not run. —')
                       : r('✗ no explanation for ' + code) + d(' — is it a real error code (like E0382)?'));
-      statusEl().textContent = ok ? 'explained ' + code : 'explain failed';
+      statusEl().textContent = ok ? 'explained' : 'explain ✗'; // short: see the on-device status
       try { setInsights(true); } catch (_) {}
     }
 
@@ -2414,7 +2440,7 @@
         // A failed run opens on its FIRST error line. Done last: opening the
         // Insights pane (above) narrows the console, re-wrapping its lines.
         if (!out.passed) term.scrollToFirstError();
-        statusEl().textContent = checkOnly ? 'type-checks ✓' : out.passed ? 'passed' : 'failed';
+        statusEl().textContent = checkOnly ? 'compiles ✓' : out.passed ? 'passed' : 'failed';
         // Refresh the list/gauge/attempts after every run; if a pass advanced
         // the learner, load the next exercise into the editor.
         let exsData = null;
@@ -4142,7 +4168,7 @@
       requestAnimationFrame(() => { dr.classList.add('open'); ov.classList.add('open'); });
       body.scrollTop = 0;
       body.focus({ preventScroll: true });
-      statusEl().textContent = ok ? 'explained ' + code : 'explain failed';
+      statusEl().textContent = ok ? 'explained' : 'explain ✗'; // short: see the on-device status
     }
 
     // ── Glossary tap-to-define: make beginner jargon in lesson prose tappable to
