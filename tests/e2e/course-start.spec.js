@@ -53,4 +53,15 @@ test.describe('Course start: Lesson 1 first, titles not ids', () => {
     await expect(page.locator('#docview .practicelink').first())
       .toHaveAttribute('data-id', 'modules/03b_pub_struct_constructor');
   });
+
+  // Lesson 34b (operator overloading) had no exercise while the impl-Add one
+  // pointed back at Lesson 25, which only mentions `Add` in passing.
+  test("Lesson 34b's Practice card opens the impl-Add exercise", async ({ page }) => {
+    await page.goto('/');
+    await page.waitForSelector('#exlist .ex[data-id]');
+    await page.evaluate(() => showView('lessons', '34b-operator-overloading'));
+    await page.waitForSelector('#docview .lessonpractice .practicelink');
+    await expect(page.locator('#docview .practicelink').first())
+      .toHaveAttribute('data-id', 'advanced/04_operator_overload_add');
+  });
 });
