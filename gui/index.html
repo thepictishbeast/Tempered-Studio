@@ -174,6 +174,9 @@
     /* Each view fades in gently on navigation (freshDocview creates a new node,
        so this re-plays per view switch). Collapsed by prefers-reduced-motion. */
     animation:fadein .26s ease both; }
+  /* freshDocview and ↑ Top park keyboard focus on the view itself: a reading
+     position for the next Tab, not a control, so no ring round the whole column. */
+  #docview:focus { outline:none; }
   .docview h1 { font-size:25px; font-weight:700; letter-spacing:-.015em; line-height:1.2; margin:4px 0 16px; }
   .docview h2 { font-size:17.5px; font-weight:600; line-height:1.3; margin:26px 0 9px; }
   .docview h3 { font-size:13.5px; color:var(--fg-dim); letter-spacing:.04em; margin:18px 0 6px; }
@@ -313,6 +316,9 @@
     color:var(--fg); font-size:12.5px; }
   .ide-file:hover, .ide-file:focus-visible { background:var(--bg-3); border-color:var(--line); outline:none; }
   .ide-file.open { background:var(--bg-3); box-shadow:inset 2px 0 0 var(--accent); }
+  /* Keyboard focus has to stand out from hover and the open file: the #101010 →
+     #1c1c1c background shift above is about 1.1:1, so draw a ring as well. */
+  .ide-group-h:focus-visible, .ide-file:focus-visible { outline:2px solid var(--accent); outline-offset:-2px; }
   .ide-file .ide-dot { width:7px; height:7px; border-radius:50%; flex:0 0 auto; background:var(--fg-dim); }
   .ide-file.st-current .ide-dot { background:var(--accent); }
   .ide-file.st-done .ide-dot { background:var(--done); } /* #36c46b was 2.3:1 on the light --bg-2 */
@@ -360,7 +366,11 @@
   @media (max-width:760px) {
     .ide-sidebar { position:absolute; top:0; left:0; z-index:12; width:min(80vw,280px); flex-basis:auto;
       height:100%; box-shadow:var(--shadow); transform:translateX(0); transition:transform .22s ease; }
-    .ide-sidebar.closed { display:block; transform:translateX(-104%); }
+    /* visibility (switched once the slide-out ends) also takes the closed drawer
+       out of the Tab order: slid off-screen by transform alone, every control in
+       it stayed focusable. */
+    .ide-sidebar.closed { display:block; transform:translateX(-104%); visibility:hidden;
+      transition:transform .22s ease, visibility 0s linear .22s; }
     .ide-scrim.show { display:block; position:absolute; inset:0; z-index:11; background:rgba(0,0,0,.4); }
     .docview .ide-host { height:52vh; }
     .docview .ideout { height:34vh; }
@@ -519,9 +529,11 @@
     padding:8px 13px; border-radius:999px; background:var(--bg-2); color:var(--fg);
     border:1px solid var(--line); box-shadow:var(--shadow); font-size:12.5px; font-weight:600;
     cursor:pointer; opacity:0; pointer-events:none; transform:translateY(6px);
-    transition:opacity .2s ease, transform .2s ease; }
+    /* visibility (switched after the fade-out) keeps it out of the Tab order while
+       hidden: at opacity:0 alone it was an invisible last Tab stop on every view. */
+    visibility:hidden; transition:opacity .2s ease, transform .2s ease, visibility 0s linear .2s; }
   .totop:hover { border-color:var(--accent); }
-  .totop.show { opacity:.94; pointer-events:auto; transform:none; }
+  .totop.show { opacity:.94; pointer-events:auto; transform:none; visibility:visible; transition-delay:0s; }
   @media (prefers-reduced-motion: reduce) { .totop { transition:none; } }
   .pane { border-right:1px solid var(--line); display:flex; flex-direction:column; min-height:0; min-width:0; }
   .pane:last-child { border-right:none; }
@@ -594,7 +606,8 @@
   .gl-more { color:var(--accent-soft); text-decoration:none; }
   .gl-more:hover { text-decoration:underline; }
   .gl-x { margin-left:auto; cursor:pointer; color:var(--fg-dim); padding:0 4px; }
-  .gl-x:hover, .gl-x:focus-visible { color:var(--fg); outline:none; }
+  .gl-x:hover { color:var(--fg); }
+  .gl-x:focus-visible { color:var(--fg); outline:2px solid var(--accent); outline-offset:1px; border-radius:4px; }
   .lesson p { line-height:1.6; font-size:14px; color:var(--fg); }
   .predict { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-top:10px; font-size:13px;
     border:1px solid transparent; border-radius:12px; padding:4px; transition:all .2s ease; }
@@ -635,7 +648,9 @@
   .appmenu .menuh{font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--fg-dim);margin:0 4px 7px}
   .appmenu .menuitem{display:block;width:100%;text-align:left;background:none;border:0;border-radius:8px;
     padding:9px 10px;font:600 13px var(--ui);color:var(--fg);cursor:pointer}
-  .appmenu .menuitem:hover,.appmenu .menuitem:focus-visible{background:var(--bg-3);outline:none}
+  .appmenu .menuitem:hover{background:var(--bg-3)}
+  /* A ring, not only the ~1.1:1 background shift, so keyboard focus can be seen. */
+  .appmenu .menuitem:focus-visible{background:var(--bg-3);outline:2px solid var(--accent);outline-offset:-2px}
   .appmenu .modesw{display:flex;width:100%;margin:0}
   .appmenu .modesw button{flex:1;padding:9px 0;font-size:12px}
   /* Left lesson DRAWER — slides in from the left over the editor, recedes to close. */
@@ -719,6 +734,10 @@
   .editor .editwrap .cm-editor { height:100%; }
   .editor .editwrap .cm-editor.cm-focused { outline:none; }
   .editor .editwrap .cm-scroller { -webkit-overflow-scrolling:touch; }
+  /* Each editor's scroll region is a Tab stop (scrollDOM tabindex=0, for axe), but
+     its host's overflow:hidden clipped the browser's outside focus ring away: draw
+     the ring inside. Covers the IDE editor too. */
+  .cm-scroller:focus-visible { outline:2px solid var(--accent); outline-offset:-2px; }
   /* Syntax-highlight overlay: a colored <pre> behind a transparent-text textarea,
      sharing one identical box so glyphs line up. The textarea owns input/caret/
      selection/scroll; the <pre> just paints colour and mirrors the scroll. */
@@ -780,11 +799,10 @@
   .run:active:not(.gated),.ghost:active:not(.gated){transform:translateY(0)}
   .run:focus-visible,.ghost:focus-visible,.pbtn:focus-visible,.iconbtn:focus-visible,.modesw button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
   /* The ⋯ menu rows, the IDE explorer's group headers + file rows and the glossary ✕
-     swapped the UA ring for a --bg-2 → --bg-3 shift (1.1–1.2:1) or a glyph tint
-     (2.3–2.7:1), under the 3:1 a focus indicator needs (WCAG 2.4.7 / 1.4.11). The
-     --accent ring is 4.7–5.6:1; inset on the rows so a scrolling list can't clip it. */
-  .appmenu .menuitem:focus-visible,.ide-group-h:focus-visible,.ide-file:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
-  .gl-x:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+     had only a --bg-2 → --bg-3 shift (1.1–1.2:1) or a glyph tint (2.3–2.7:1) as a
+     focus indicator, under the 3:1 one needs (WCAG 2.4.7 / 1.4.11). Their --accent
+     rings (4.7–5.6:1, inset on the rows so a scrolling list can't clip them) sit
+     with each rule: .ide-group-h/.ide-file, .gl-x and .appmenu .menuitem above. */
 
   /* embedded terminal — a real xterm.js widget */
   .terminal { margin:0 20px 18px; border:1px solid var(--line); border-radius:var(--radius); background:#000000;
@@ -954,12 +972,20 @@
   .footer{position:fixed;bottom:0;left:0;right:0;display:flex;gap:18px;justify-content:center;
     padding:6px;background:var(--bg-2);border-top:1px solid var(--line);font-family:var(--mono);font-size:11px;color:var(--fg-dim)}
   .footer b{color:var(--fg)}
+  /* The fixed keybar covers the bottom ~26px of every pane (and main / .docview's
+     "100vh - 45px" runs a few px past the real header): keep scroll-into-view, focus
+     scrolling included, clear of that band (WCAG 2.4.11, technique C43). Nothing
+     scrolls the ↻ Recall chips at the foot of the exercise column, so that column
+     ends above the bar instead. Phones hide the bar. */
+  @media (min-width:761px){ .docview, .exlist, .lesson, main > .pane.scroll { scroll-padding-bottom:48px; }
+    main > .pane:first-child { padding-bottom:40px; } }
   .keyshelp { position:fixed; inset:0; background:rgba(0,0,0,.55); align-items:center; justify-content:center; z-index:60; }
   /* Show ONLY when not [hidden]. An author `display:flex` overrides the UA `[hidden]{display:none}` regardless of specificity, which would leave this full-viewport overlay always painted and swallowing every click. */
   .keyshelp:not([hidden]) { display:flex; }
   /* Fits the viewport and scrolls: centred in a short one (400% zoom), a taller card
      overflowed above AND below, with no way to scroll to either end. */
   .keyshelp-card { background:var(--bg-2); border:1px solid var(--line); border-radius:12px; padding:20px 24px; max-width:600px; width:90%; box-shadow:0 12px 44px rgba(0,0,0,.55); max-height:calc(100vh - 32px); overflow-y:auto; }
+  .keyshelp-card:focus { outline:none; } /* where focus lands as the help opens: the dialog, not a control */
   .keyshelp-card h2 { margin:0 0 14px; font-size:16px; }
   .keyshelp-grid { display:flex; gap:28px; flex-wrap:wrap; }
   .keyshelp-grid h3 { font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--fg-dim); margin:0 0 8px; }
@@ -1154,6 +1180,13 @@
         <button type="button" id="rsUp" class="rs-a-hi" title="Larger reading text" aria-label="Larger reading text">A+</button>
       </span>
     </div>
+    <!-- The single-key shortcuts (r runs, h hints, b opens the Book …) can be
+         switched off (WCAG 2.1.4): a slip of the keyboard, or a word from speech
+         input, then can't run code or leave the page. -->
+    <div class="menusec" role="group" aria-label="Keyboard">
+      <div class="menuh">Keyboard</div>
+      <label class="menuitem"><input type="checkbox" id="keysToggle" checked style="accent-color:var(--accent)"> Single-key shortcuts</label>
+    </div>
   </div>
 
   <!-- Left LESSON DRAWER (Paul): slides out from the left to reference the current
@@ -1220,7 +1253,7 @@
           &nbsp; <span id="editorBar">main.rs</span>
           <span style="flex:1"></span>
           <span id="editstate" style="color:var(--fg-dim)">read &amp; edit, then Run</span>
-          <span id="resetbtn" title="Restore the original starter code" style="cursor:pointer;color:var(--accent-soft);margin-left:12px">↺ reset</span></div>
+          <button type="button" id="resetbtn" title="Restore the original starter code" style="cursor:pointer;color:var(--accent-soft);margin-left:12px;background:none;border:0;padding:0;font:inherit">↺ reset</button></div>
         <div class="editwrap">
           <!-- CodeMirror 6 mounts here (single-layer editor — replaces the old
                transparent-textarea-over-<pre> overlay that drifted out of alignment). -->
@@ -1269,11 +1302,11 @@
 
   <section class="docview scroll" id="docview" hidden></section>
 
-  <div class="footer"><span><b>r</b> run</span><span><b>c</b> check</span><span><b>h</b> hint</span><span><b>l</b> lessons</span><span><b>b</b> book</span><span><b>?</b> keys</span></div>
+  <div class="footer"><span><b>r</b> run</span><span><b>c</b> check</span><span><b>h</b> hint</span><span><b>l</b> lessons</span><span><b>b</b> book</span><span><b>?</b> keys</span><span class="fedit"><b>Esc</b> then <b>Tab</b> leave the editor</span></div>
 
   <!-- Keyboard shortcuts overlay, toggled with `?` (Esc / backdrop to close). -->
   <div class="keyshelp" id="keyshelp" hidden role="dialog" aria-modal="true" aria-label="Keyboard shortcuts">
-    <div class="keyshelp-card">
+    <div class="keyshelp-card" tabindex="-1">
       <h2>Keyboard shortcuts</h2>
       <div class="keyshelp-grid">
         <div><h3>Do</h3>
@@ -1282,10 +1315,15 @@
           <p><kbd>p</kbd> Practice</p><p><kbd>l</kbd> Lessons</p><p><kbd>z</kbd> Quizzes</p><p><kbd>s</kbd> Cheatsheets</p><p><kbd>b</kbd> Book</p><p><kbd>g</kbd> Glossary</p><p><kbd>t</kbd> Roadmap</p></div>
         <div><h3>Layout</h3>
           <p><kbd>f</kbd> Focus (hide list)</p><p><kbd>i</kbd> Insights drawer</p><p><kbd>?</kbd> This help</p></div>
+        <!-- Tab indents in the code editors, so say how to leave them (WCAG 2.1.2). -->
+        <div><h3>Code editor</h3>
+          <p><kbd>Tab</kbd> Indent</p><p><kbd>Esc</kbd> then <kbd>Tab</kbd> Leave the editor</p><p><kbd>Ctrl+Enter</kbd> Run</p></div>
       </div>
-      <p class="keyshelp-foot">Press <kbd>?</kbd> or <kbd>Esc</kbd> to close. (Shortcuts pause while you're typing in the editor.)</p>
+      <p class="keyshelp-foot">Press <kbd>?</kbd> or <kbd>Esc</kbd> to close. (Shortcuts pause while you're typing in the editor. You can switch them off in the ⋯ menu.)</p>
     </div>
   </div>
+  <!-- Read out as either code editor takes focus (aria-describedby on its content). -->
+  <span id="cmKeysHint" hidden>Tab indents the code. To leave the editor, press Escape, then Tab.</span>
 
   <!-- In-page question box, driven by ask(). It replaces the browser's native
        alert/confirm/prompt, which block the page, read badly on phones and to
@@ -1643,8 +1681,13 @@
     // holds the previous, now-DETACHED node and paints it harmlessly off-DOM.
     function freshDocview() {
       const old = document.getElementById('docview');
+      // Focus on a link or button in the old view (a hub card, prev/next, ← Learn)?
+      // Swapping the node destroys it and focus falls to <body>: park it on the new
+      // view instead, so the next Tab (and a screen reader) carries on from there.
+      const hadFocus = old.contains(document.activeElement);
       const d = old.cloneNode(false); // same id/attrs (incl. hidden state), no children
       old.replaceWith(d);
+      if (hadFocus) { d.tabIndex = -1; d.focus({ preventScroll: true }); }
       // Reset the body-anchored "↑ Top" button on every view change; only a reading
       // view (via wireReadingScroll) re-shows it once you scroll down.
       document.getElementById('totop')?.classList.remove('show');
@@ -1786,7 +1829,8 @@
       return [
         CM.lineNumbers(), CM.history(), CM.drawSelection(), CM.rust(),
         CM.syntaxHighlighting(hl), theme, CM.EditorView.lineWrapping,
-        CM.EditorView.contentAttributes.of({ 'aria-label': ariaLabel }),
+        // Tab indents (indentWithTab below), so the description says how to leave.
+        CM.EditorView.contentAttributes.of({ 'aria-label': ariaLabel, 'aria-describedby': 'cmKeysHint' }),
         CM.keymap.of([{ key: 'Mod-Enter', run: () => { if (onRun) onRun(); return true; } }]),
         CM.keymap.of([CM.indentWithTab, ...CM.defaultKeymap, ...CM.historyKeymap, ...CM.closeBracketsKeymap]),
       ];
@@ -2634,6 +2678,9 @@
         (phaseStats[p] = phaseStats[p] || { done: 0, total: 0 }).total++;
         if (e.status === 'done') phaseStats[p].done++;
       });
+      // Keyboard: Enter on a row re-renders the list (below), which destroyed the
+      // focused row and dropped focus to <body>. Note the row, to put focus back.
+      const focusedId = box.contains(document.activeElement) ? document.activeElement.dataset.id : null;
       box.innerHTML = items.length ? items.map((e, i) => {
         const st = e.status || 'locked';
         const sel = st === 'current' ? ' sel' : '';
@@ -2704,6 +2751,7 @@
         el.onclick = go;
         el.onkeydown = ev => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); go(); } };
       });
+      if (focusedId) [...box.querySelectorAll('.ex[data-id]')].find(r => r.dataset.id === focusedId)?.focus();
       if (data && typeof data.total === 'number' && data.total > 0) {
         const pct = Math.round(100 * (data.done || 0) / data.total);
         document.getElementById('pct').textContent = `${data.done || 0} / ${data.total} · ${pct}%`;
@@ -2804,8 +2852,9 @@
         extensions: [
           CM.lineNumbers(), CM.history(), CM.drawSelection(), CM.rust(),
           CM.syntaxHighlighting(hl), theme, CM.EditorView.lineWrapping, errField,
-          // accessible name for the contenteditable (axe aria-input-field-name).
-          CM.EditorView.contentAttributes.of({ 'aria-label': 'Source code editor for the current exercise' }),
+          // accessible name for the contenteditable (axe aria-input-field-name), and a
+          // description saying how to leave it: Tab indents here (WCAG 2.1.2).
+          CM.EditorView.contentAttributes.of({ 'aria-label': 'Source code editor for the current exercise', 'aria-describedby': 'cmKeysHint' }),
           // Ctrl/Cmd+Enter runs — every tier (routes through runOp, so Learn's
           // predict-first gate still applies).
           CM.keymap.of([{ key: 'Mod-Enter', run: () => { runOp('run'); return true; } }]),
@@ -3029,10 +3078,11 @@
         }
         box.hidden = false;
         const cc = document.getElementById('conceptChip'); if (cc) cc.classList.add('open');
-        const close = () => { box.hidden = true; box.innerHTML = ''; const c = document.getElementById('conceptChip'); if (c) c.classList.remove('open'); };
+        // Closing destroys the ✕, and keyboard focus with it: hand focus back to the chip.
+        const close = () => { box.hidden = true; box.innerHTML = ''; const c = document.getElementById('conceptChip'); if (c) { c.classList.remove('open'); c.focus(); } };
         const x = document.getElementById('glX');
         if (x) { x.onclick = close;
-          x.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') close(); }; }
+          x.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); close(); } }; }
       } catch (_) { /* offline without the local seam — leave the chip inert */ }
     }
 
@@ -4216,8 +4266,13 @@
       if (full) full.onclick = e => { e.preventDefault(); closeLessonDrawer(); showView('lessons', lessonId); };
       if (full) full.hidden = false; // an Explain write-up hides it (showExplanation)
       body.innerHTML = '<p style="color:var(--fg-dim)">loading the lesson…</p>';
+      if (!dr.contains(document.activeElement)) dr._opener = document.activeElement; // see closeLessonDrawer
       ov.hidden = false; dr.hidden = false; dr.setAttribute('aria-hidden', 'false');
       requestAnimationFrame(() => { dr.classList.add('open'); ov.classList.add('open'); });
+      // The drawer comes BEFORE <main> in the DOM, so Tab from the link or pull tab
+      // that opened it went on through the page under the overlay. Move focus in,
+      // as an explanation does (arrows / PgDn read it; Esc hands focus back).
+      body.focus({ preventScroll: true });
       try {
         const l = await fetch('api/lessons?id=' + encodeURIComponent(lessonId)).then(r => r.json()).then(j => j.lesson);
         // The header must MATCH the content: show the lesson's own title, not the
@@ -4241,9 +4296,12 @@
       const dr = document.getElementById('lessonDrawer');
       const ov = document.getElementById('lessonDrawerOverlay');
       if (!dr || dr.hidden) return;
-      // An explanation took keyboard focus (showExplanation): hand it back to what
-      // opened it, before aria-hidden lands on the drawer around it.
-      if (dr._opener && dr._opener.isConnected) dr._opener.focus({ preventScroll: true });
+      // The drawer took keyboard focus as it opened (a lesson, or an explanation):
+      // hand it back to what opened it, before aria-hidden lands on the drawer around
+      // it. Not if focus has moved on outside the drawer since (Esc in the editor,
+      // say); a click on the overlay leaves nothing focused, so that still hands it back.
+      const at = document.activeElement;
+      if ((!at || at === document.body || dr.contains(at)) && dr._opener && dr._opener.isConnected) dr._opener.focus({ preventScroll: true });
       dr._opener = null;
       dr.classList.remove('open'); ov.classList.remove('open'); dr.setAttribute('aria-hidden', 'true');
       const done = () => { dr.hidden = true; ov.hidden = true; dr.removeEventListener('transitionend', done); };
@@ -4739,6 +4797,9 @@
       btn.onclick = () => {
         const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
         d.scrollTo({ top: 0, behavior: reduce ? 'auto' : 'smooth' });
+        // The button hides at the top: bring keyboard focus up with the view, or the
+        // next Tab would carry on from a hidden button at the bottom.
+        d.tabIndex = -1; d.focus({ preventScroll: true });
       };
       let saveT = null;
       d.addEventListener('scroll', () => {
@@ -4864,18 +4925,48 @@
       f: () => setFocusMode(!document.querySelector('main').classList.contains('no-list')),
       '?': () => toggleKeysHelp(),
     };
+    // The single-key shortcuts can be switched off in the ⋯ menu (WCAG 2.1.4): then a
+    // slip of the keyboard, or a word from speech input, can't run code, use up a
+    // hint or leave the page. Kept per device; the keybar then shows only what still
+    // works (the editor's way out, .fedit).
+    let keysOn = true;
+    try { keysOn = localStorage.getItem('ts-keys') !== '0'; } catch (_) {}
+    function applyKeysOn() {
+      const box = document.getElementById('keysToggle');
+      if (box) box.checked = keysOn;
+      document.querySelectorAll('.footer > span:not(.fedit)').forEach(s => { s.hidden = !keysOn; });
+    }
+    document.getElementById('keysToggle')?.addEventListener('change', e => {
+      keysOn = e.target.checked;
+      try { localStorage.setItem('ts-keys', keysOn ? '1' : '0'); } catch (_) {}
+      applyKeysOn();
+    });
+    applyKeysOn();
     function toggleKeysHelp(force) {
       const el = document.getElementById('keyshelp');
-      if (el) el.hidden = force === undefined ? !el.hidden : !force;
+      if (!el) return;
+      const open = force === undefined ? el.hidden : !!force;
+      if (open === !el.hidden) return; // already open / closed
+      el.hidden = !open;
+      // It is an aria-modal dialog: focus moves into it, and back where it was on close.
+      if (open) { el._opener = document.activeElement; el.querySelector('.keyshelp-card').focus(); }
+      else if (el._opener && el._opener.isConnected) { el._opener.focus(); el._opener = null; }
     }
     document.addEventListener('keydown', e => {
-      // Esc closes the keys-help — only consume it when the help is actually open.
+      // Esc closes the keys-help — only consume it when the help is actually open,
+      // and then close only the help, not the drawer or ⋯ menu behind it too (their
+      // Escape listeners come later).
       if (e.key === 'Escape') {
         const kh = document.getElementById('keyshelp');
-        if (kh && !kh.hidden) { toggleKeysHelp(false); return; }
+        if (kh && !kh.hidden) { e.stopImmediatePropagation(); toggleKeysHelp(false); return; }
       }
       const tag = (e.target.tagName || '').toLowerCase();
       if (tag === 'textarea' || tag === 'input' || e.metaKey || e.ctrlKey || e.altKey) return;
+      // Both code editors are CodeMirror 6, a contenteditable <div>, not a <textarea>:
+      // without this, typing `let` there opened Lessons, Rust's `?` opened this help,
+      // and the letter never reached the code.
+      if (e.target.isContentEditable || (e.target.closest && e.target.closest('.cm-editor'))) return;
+      if (!keysOn) return; // switched off in the ⋯ menu
       if (document.querySelector('dialog[open]')) return; // a question (ask) is open: its keys are its own
       const fn = KEYMAP[e.key.toLowerCase()];
       if (fn) { e.preventDefault(); fn(); }
@@ -4883,6 +4974,9 @@
     document.getElementById('keyshelp').addEventListener('click', e => {
       if (e.target.id === 'keyshelp') toggleKeysHelp(false); // backdrop click
     });
+    // A modal with nothing to Tab to: Tab stays put rather than wandering off to the
+    // page behind the backdrop (? or Esc closes it, as its own text says).
+    document.getElementById('keyshelp').addEventListener('keydown', e => { if (e.key === 'Tab') e.preventDefault(); });
 
     // ── a11y: roles + live regions so screen readers track state ──
     (() => {
@@ -5081,6 +5175,8 @@
         document.querySelectorAll('.pbtn').forEach(x => x.classList.remove('sel'));
         const pc = document.getElementById('predcode'); if (pc) pc.value = '';
         updateRunGate();
+        // The link just hid with the summary: put focus back on the question, not <body>.
+        document.querySelector('.pbtn[data-pred]')?.focus();
       }
     });
 
@@ -5090,8 +5186,15 @@
       const pane = document.querySelector('main > .pane:first-child');
       const ttl = document.getElementById('exTitle');
       if (pane && ttl) {
-        ttl.setAttribute('role', 'button');
-        ttl.setAttribute('tabindex', '0');
+        // A button only where it toggles: the accordion is phone-only, so on desktop
+        // the heading stays a heading, not an inert "button" Tab stop.
+        const syncRole = () => {
+          if (isPhone()) { ttl.setAttribute('role', 'button'); ttl.setAttribute('tabindex', '0');
+            ttl.setAttribute('aria-expanded', pane.classList.contains('open') ? 'true' : 'false'); }
+          else { ttl.removeAttribute('role'); ttl.removeAttribute('tabindex'); ttl.removeAttribute('aria-expanded'); }
+        };
+        syncRole();
+        try { window.matchMedia('(max-width:760px)').addEventListener('change', syncRole); } catch (_) {}
         const toggle = () => { if (!isPhone()) return; pane.classList.toggle('open');
           ttl.setAttribute('aria-expanded', pane.classList.contains('open') ? 'true' : 'false'); };
         ttl.addEventListener('click', toggle);
@@ -5154,7 +5257,17 @@
     // authoritative (with no outcome picked, Enter does nothing and the pulsing
     // prompt keeps asking for the prediction).
     document.getElementById('predcode').addEventListener('keydown', e => {
-      if (e.key === 'Enter' && predict.compiles !== null) { e.preventDefault(); runOp('run'); }
+      if (e.key !== 'Enter' || predict.compiles === null) return;
+      e.preventDefault();
+      // The run locks the guess, which hides this box with the question: once the
+      // run is in, focus goes to Run (as after "Lock guess"), or to the next question
+      // if a pass moved on, not left in a hidden box or on <body>.
+      runOp('run').then(() => {
+        const a = document.activeElement;
+        if (a && a !== document.body && a.getClientRects().length) return; // focus is somewhere real
+        const run = document.getElementById('runbtn');
+        (run && !run.disabled ? run : document.querySelector('.pbtn[data-pred]'))?.focus();
+      });
     });
     // Mode switcher (Learn / Assist / Dev) + restore the saved mode.
     document.querySelectorAll('#modesw button').forEach(b => b.onclick = () => { setMode(b.dataset.mode); closeMenu(); });
@@ -5165,8 +5278,12 @@
     const appmenu = document.getElementById('appmenu');
     function closeMenu() {
       if (!appmenu || appmenu.hidden) return;
+      // Hiding the panel hides its focused control too (Escape, a Go-to item, a
+      // mode): hand focus back to ⋯ rather than drop it to <body>.
+      const hadFocus = appmenu.contains(document.activeElement);
       appmenu.hidden = true;
       menuBtn && menuBtn.setAttribute('aria-expanded', 'false');
+      if (hadFocus && menuBtn) menuBtn.focus();
     }
     function openMenu() {
       if (!appmenu) return;
@@ -5178,6 +5295,12 @@
       appmenu.addEventListener('click', (e) => e.stopPropagation());
       document.addEventListener('click', () => closeMenu());
       document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeMenu(); });
+      // Tabbing on past its last control closes the panel, instead of leaving it
+      // floating over the page while focus moves on underneath.
+      appmenu.addEventListener('focusout', (e) => {
+        const to = e.relatedTarget;
+        if (to && to !== menuBtn && !appmenu.contains(to)) closeMenu();
+      });
       appmenu.querySelectorAll('.menuitem[data-goto]').forEach(b =>
         b.onclick = () => { showView(b.dataset.goto); closeMenu(); });
       // Sandbox runs on the web via POST /api/sandbox, and on-device via the

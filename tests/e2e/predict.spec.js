@@ -32,6 +32,18 @@ test.describe('predict-first step', () => {
     await expect(page.locator('#runbtn')).toBeEnabled();
   });
 
+  test('by keyboard: Enter in the code box runs, then focus waits on Run (audit keyboard-8)', async ({ page, request }) => {
+    await openInLearn(page, request);
+    await page.locator('.pbtn[data-pred="fails"]').focus();
+    await page.keyboard.press('Enter'); // pick the outcome
+    await page.locator('#predcode').focus();
+    await page.keyboard.type('E0308');
+    await page.keyboard.press('Enter'); // lock + run: the box hides with the question
+    await expect(page.locator('#statusline')).toContainText('failed', { timeout: 30_000 });
+    // Before the fix focus was left in the hidden box (or on <body>).
+    await expect(page.locator('#runbtn'), 'focus lands on Run, ready to re-run').toBeFocused();
+  });
+
   test('graded once on the first run, never re-graded after a fix', async ({ page, request }) => {
     await openInLearn(page, request);
     await page.locator('.pbtn[data-pred="fails"]').click();
