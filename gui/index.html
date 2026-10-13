@@ -638,6 +638,8 @@
   .pbtn { background:var(--bg-2); color:var(--fg); border:1px solid var(--line); border-radius:8px;
     padding:5px 10px; cursor:pointer; font-size:12.5px; transition:.12s; }
   .pbtn:hover { border-color:var(--accent); }
+  /* "Lock guess" stays dim until an outcome is picked. */
+  .pbtn:disabled { opacity:.45; cursor:not-allowed; border-color:var(--line); }
   .pbtn.sel { border-color:var(--accent); box-shadow:inset 0 -2px 0 var(--accent); }
   /* Semantic tint: a locked-in "passes" reads green, "fails" reads red. */
   .pbtn[data-pred="compiles"].sel { border-color:var(--done); box-shadow:inset 0 -2px 0 var(--done); color:var(--fg); }
@@ -1108,6 +1110,9 @@
           <button class="pbtn" data-pred="compiles">passes ✓</button>
           <button class="pbtn" data-pred="fails">fails ✗</button>
           <input id="predcode" class="pin" placeholder="error code? (blank if it passes or panics)" spellcheck="false" autocomplete="off" />
+          <!-- passes/fails only PICKS (this code box stays open to type into);
+               "Lock guess", Enter in the box, or Run confirms the whole guess. -->
+          <button class="pbtn" id="predlock" disabled>Lock guess</button>
           <span id="predverdict" class="pv"></span>
         </div>
         <div id="predictDone" class="predict-done" hidden></div>
@@ -2295,6 +2300,12 @@
         term.writeln(d('Predicting before you run is the active-recall step — that\'s the point.'));
         return;
       }
+      // Running LOCKS a picked guess (Run is the implicit "Lock guess"): the real
+      // output is about to show. Lock BEFORE the fetch — showPrediction only writes
+      // into the visible summary.
+      if ((op === 'run' || op === 'check') && predict.compiles !== null && !predict.locked) {
+        predict.locked = true; updateRunGate();
+      }
       const btns = ['runbtn','checkbtn','explainbtn'].map(id=>document.getElementById(id));
       btns.forEach(x=>x && (x.disabled=true));
       statusEl().textContent = op + '…';
@@ -2332,7 +2343,17 @@
         term.writeln(''); term.writeln(verdict);
         renderDiag(out); // sets lastCode (Assist/Dev only; '' in Learn — by-hand)
         setInsights(true); // a result exists now — surface the Insights drawer
-        if (op !== 'explain') { showPrediction(out); renderTutor(out.passed, lastCode); }
+        // Grade the locked guess ONCE, on the first result that settles it: a Run, or a
+        // failing Check (a passing Check only proves it compiles; it may still panic).
+        // Not on status null (toolchain error or timeout: nothing ran). Code edited
+        // after the guess can't check it (showPrediction says so); re-grading the
+        // learner's fix flipped a right "fails" to "✗ you said it fails, it passed".
+        if (op !== 'explain') {
+          if (!predict.graded && predict.locked && out.status != null && (op === 'run' || !out.passed)) {
+            showPrediction(out, payload.source !== predict.src);
+          }
+          renderTutor(out.passed, lastCode);
+        }
         // Gate ONCE per exercise (Paul): the prediction persists after a run, so
         // Run stays unlocked for edit-and-rerun; it only re-arms on the NEXT
         // exercise (loadCurrent). The verdict above stays as feedback.
@@ -2557,7 +2578,11 @@
 
     let curExercise = null, curOriginal = '', hintLevel = 0;
     let curLessonId = null, curLessonTitle = ''; // the lesson that teaches the current exercise (for the drawer)
-    let predict = { compiles: null, code: '' };
+    // compiles = the picked outcome (true = passes); src = the code on screen when it
+    // was picked or locked (the guess is about THAT code); locked = confirmed (Lock
+    // guess, or Run), which collapses the question; graded = its one result (a
+    // verdict, or "not checked") was shown.
+    let predict = { compiles: null, code: '', src: null, locked: false, graded: false };
     let curBookRefs = [];
     // ── CodeMirror 6 editor (single layer; replaces the textarea/<pre> overlay
     //    that drifted out of alignment). CM6 does highlighting, indent, and
@@ -2757,15 +2782,20 @@
       if (runb) runb.classList.toggle('cta', mode === 'learn' && answered);
       const pb = document.getElementById('predictbar');
       // M (Paul): the pass/fail QUESTION disappears once answered — collapse the
-      // whole bar to the compact confirmation below; "change" re-opens it.
-      if (pb) { pb.classList.toggle('needs-answer', gated); pb.style.display = answered ? 'none' : ''; }
+      // whole bar to the compact confirmation below; "change" re-opens it. It
+      // collapses on CONFIRM (Lock guess, or Run), not on the passes/fails click:
+      // collapsing on the click hid the error-code box before it could be typed.
+      if (pb) { pb.classList.toggle('needs-answer', gated); pb.style.display = predict.locked ? 'none' : ''; }
+      const lock = document.getElementById('predlock');
+      if (lock) lock.disabled = !answered;
       const prose = document.getElementById('predictProse');
-      if (prose) prose.style.display = (mode === 'learn' && !answered) ? '' : 'none';
+      if (prose) prose.style.display = (mode === 'learn' && !predict.locked) ? '' : 'none';
       const done = document.getElementById('predictDone');
       if (done) {
-        if (answered) {
+        if (predict.locked) {
           done.hidden = false;
-          done.innerHTML = '✓ Predicted: <b>' + (predict.compiles ? 'passes' : 'fails') + '</b>'
+          // Once graded the summary holds the final result (showPrediction): keep it.
+          if (!predict.graded) done.innerHTML = '✓ Predicted: <b>' + (predict.compiles ? 'passes' : 'fails') + '</b>'
             + (predict.code ? ' (' + esc(predict.code) + ')' : '')
             + (mode === 'learn' ? ' — press Run.' : '')
             + ' · <a href="#" id="predictChange">change</a>';
@@ -2773,8 +2803,10 @@
       }
     }
 
-    // Compare the learner's locked prediction against the real result.
-    function showPrediction(out) {
+    // Compare the learner's locked prediction against the real result. `changed`:
+    // the run was of code edited AFTER the guess, so it can't check the guess; say
+    // so instead of grading a different program. Omitted = grade normally.
+    function showPrediction(out, changed) {
       if (predict.compiles === null) return;
       const el = document.getElementById('predverdict');
       // `predict.compiles` (legacy field name) holds the SUCCESS prediction, and
@@ -2794,21 +2826,22 @@
         else { parts.push('(no error code this run)'); codeRight = false; } // guessed a code, but it passed
       }
       // A PERFECT prediction: outcome right AND (no code guessed, or the code matched).
-      const perfect = compRight && codeRight;
-      const verdict = (perfect ? '🎯 ' : '') + parts.join(' · ');
-      const color = compRight ? 'var(--done)' : 'var(--error)';
+      const perfect = !changed && compRight && codeRight;
+      const verdict = changed ? 'not checked: you changed the code after you guessed'
+        : (perfect ? '🎯 ' : '') + parts.join(' · ');
+      const color = changed ? 'var(--fg-dim)' : compRight ? 'var(--done)' : 'var(--error)';
       // Surface the verdict where the learner ACTUALLY looks: the visible locked
       // summary (#predictDone). #predictbar collapses to display:none once answered,
       // so the old #predverdict inside it was written but never seen — the whole
-      // payoff of predict-first ("were you right?") was invisible. Keeps the
-      // "change" link (wired by delegation) so re-predicting still works.
+      // payoff of predict-first ("were you right?") was invisible. Shown ONCE and
+      // final: no "change" link (re-predicting would only re-grade).
       const done = document.getElementById('predictDone');
       if (done && !done.hidden) {
         done.innerHTML = '✓ Predicted: <b>' + (predict.compiles ? 'passes' : 'fails') + '</b>'
           + (predict.code ? ' (' + esc(predict.code) + ')' : '')
-          + ' · <span class="pv-verdict' + (perfect ? ' pv-perfect' : '') + '" style="color:' + color + '">' + esc(verdict) + '</span>'
-          + ' · <a href="#" id="predictChange">change</a>';
+          + ' · <span class="pv-verdict' + (perfect ? ' pv-perfect' : '') + '" style="color:' + color + '">' + esc(verdict) + '</span>';
         if (perfect) { const s = done.querySelector('.pv-perfect'); if (s) void s.offsetWidth; } // replay the pop
+        predict.graded = true; // only once it is actually on screen
       }
       // Keep the legacy hidden span in sync (harmless if unseen).
       if (el) { el.textContent = verdict; el.style.color = color; }
@@ -3068,7 +3101,7 @@
       renderTutor(null); // back to the pre-run prompt for the new exercise
       setInsights(insightsPinned()); // collapse the drawer for a clean IDE (unless pinned)
       // fresh exercise → reset the prediction
-      predict = { compiles: null, code: '' };
+      predict = { compiles: null, code: '', src: null, locked: false, graded: false };
       document.querySelectorAll('.pbtn').forEach(b => b.classList.remove('sel'));
       const pc = document.getElementById('predcode'); if (pc) pc.value = '';
       const pv = document.getElementById('predverdict'); if (pv) pv.textContent = '';
@@ -4808,7 +4841,7 @@
     document.addEventListener('click', e => {
       if (e.target && e.target.id === 'predictChange') {
         e.preventDefault();
-        predict = { compiles: null, code: '' };
+        predict = { compiles: null, code: '', src: null, locked: false, graded: false };
         document.querySelectorAll('.pbtn').forEach(x => x.classList.remove('sel'));
         const pc = document.getElementById('predcode'); if (pc) pc.value = '';
         updateRunGate();
@@ -4864,16 +4897,24 @@
       setTimeout(() => { try { refit(); } catch (_) {} }, 60);
     }
     document.getElementById('hintbtn').onclick = runHint;
-    // predict-first: lock a compiles/fails guess (+ optional error code) before Run
-    document.querySelectorAll('.pbtn').forEach(b => b.onclick = () => {
+    // predict-first: pick a passes/fails guess (+ optional error code), then confirm
+    // it with "Lock guess" (Run also locks it) before the real output shows. The
+    // guess is about the code on screen when it is picked or locked (predict.src).
+    document.querySelectorAll('.pbtn[data-pred]').forEach(b => b.onclick = () => {
       document.querySelectorAll('.pbtn').forEach(x => x.classList.remove('sel'));
       b.classList.add('sel');
       predict.compiles = b.dataset.pred === 'compiles';
+      predict.src = editorEl().value;
       updateRunGate();
     });
+    document.getElementById('predlock').onclick = () => {
+      if (predict.compiles === null) return;
+      predict.locked = true; predict.src = editorEl().value; updateRunGate();
+      document.getElementById('runbtn')?.focus(); // the lock button just vanished — Run is next
+    };
     document.getElementById('predcode').addEventListener('input', e => { predict.code = e.target.value; updateRunGate(); });
     // Enter in the error-code box = Run — the natural finishing gesture after
-    // typing a guess. Only once the pass/fail half is locked: the gate stays
+    // typing a guess. Only once the pass/fail half is picked: the gate stays
     // authoritative (with no outcome picked, Enter does nothing and the pulsing
     // prompt keeps asking for the prediction).
     document.getElementById('predcode').addEventListener('keydown', e => {

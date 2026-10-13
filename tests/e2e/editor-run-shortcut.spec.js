@@ -44,9 +44,10 @@ test.describe('editor Run shortcut (Ctrl/Cmd+Enter)', () => {
     await page.locator('#predcode').fill('E0384');
     await expect(page.locator('#runbtn'), 'gated with no outcome picked').toBeDisabled();
     await expect(page.locator('#predictbar')).toBeVisible();
-    // Lock the outcome: the pass/fail QUESTION disappears (Paul), the compact
-    // confirmation carries the guess (incl. the code), and Run unlocks.
+    // Pick the outcome (Run unlocks), then Lock it: the pass/fail QUESTION
+    // disappears (Paul) and the compact confirmation carries the guess + code.
     await page.locator('.pbtn[data-pred="fails"]').click();
+    await page.locator('#predlock').click();
     await expect(page.locator('#predictbar')).toBeHidden();
     await expect(page.locator('#predictDone')).toContainText('fails');
     await expect(page.locator('#predictDone')).toContainText('E0384');

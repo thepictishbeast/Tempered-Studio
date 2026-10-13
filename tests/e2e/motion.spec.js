@@ -30,7 +30,8 @@ test.describe('Motion polish', () => {
     await page.waitForSelector('#exTitle');
     await page.evaluate(() => showView('practice'));
     await page.waitForSelector('#predictbar');
-    await page.locator('.pbtn', { hasText: 'fails' }).click(); // lock → #predictDone shows
+    await page.locator('.pbtn', { hasText: 'fails' }).click();
+    await page.locator('#predlock').click(); // lock → #predictDone shows
     const perfect = await page.evaluate(() => {
       predict.code = 'E0384'; lastCode = 'E0384';
       showPrediction({ passed: false, raw_stderr: 'error[E0384]: x' });
@@ -43,7 +44,7 @@ test.describe('Motion polish', () => {
     expect(perfect.text).toContain('🎯');
     expect(perfect.text).toContain('nailed it');
     expect(perfect.celebrated).toBe(true);
-    expect(perfect.change, 'can still re-predict').toBe(true);
+    expect(perfect.change, 'a graded guess is final: no "change", no re-grade').toBe(false);
     // Right outcome but WRONG code → no celebration.
     const imperfect = await page.evaluate(() => {
       predict.code = 'E0502'; lastCode = 'E0384';
