@@ -568,3 +568,10 @@ definition = "The rules that let you leave lifetime annotations out of a functio
 book_chapter = "ch10-03-lifetime-syntax"
 source = "The Rust Book, ch.10.3 \"Validating References with Lifetimes\" (Lifetime Elision)"
 
+[[term]]
+name = "module"
+aliases = ["modules", "mod", "module tree", "nested module", "nested modules"]
+definition = "A module is a named group of code inside a crate, written `mod name { ... }`. Modules can sit inside other modules, so a crate's modules form a tree rooted at `crate`, and from outside an item is named by its path down that tree, with `::` between the names (as in `kitchen::oven::bake`). Each module is its own namespace, so two modules can each hold an item with the same name."
+book_chapter = "ch07-03-paths-for-referring-to-an-item-in-the-module-tree"
+source = "The Rust Book, ch.7.2 \"Defining Modules to Control Scope and Privacy\" and ch.7.3 \"Paths for Referring to an Item in the Module Tree\""
+

@@ -1,0 +1,18 @@
+id = "modules/00_nested_module_path"
+title = "Name an item by its path down the module tree"
+difficulty = "beginner"
+estimated_minutes = 4
+concept = "module-tree"
+expected_error_code = "E0433"
+solution_outline = """
+`seating` lives inside `restaurant`, so from `main` there is no `seating` to
+find: the crate's top level holds only `restaurant` (E0433). Name the function
+by its whole path down the tree, one `::` per level:
+`restaurant::seating::ready(2);`. Modules are namespaces, and an item's name
+from outside is its path.
+"""
+
+[[book_refs]]
+chapter = "ch07-03-paths-for-referring-to-an-item-in-the-module-tree"
+anchor = "paths-for-referring-to-an-item-in-the-module-tree"
+why = "How a path names an item in the module tree, one module at a time, separated by `::`."

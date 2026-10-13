@@ -23,7 +23,7 @@ use walkdir::WalkDir;
 /// `.content-version` marker; a store whose marker is older re-copies the
 /// read-only content dirs on next seed, so an already-seeded store isn't frozen
 /// on its first-run copies. Progress is never touched by that refresh.
-pub const CONTENT_VERSION: u32 = 63;
+pub const CONTENT_VERSION: u32 = 64;
 
 /// Errors during exercise discovery.
 #[derive(Debug, thiserror::Error)]
