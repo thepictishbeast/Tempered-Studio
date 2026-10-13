@@ -1051,6 +1051,12 @@
   @media (max-width: 760px) {
     body { height:auto; overflow-y:auto; overflow-x:hidden; }
     header { flex-wrap:wrap; gap:8px 12px; padding:8px 10px; }
+    /* Under ~420px six controls with 12px gaps overflowed the row by a few pixels
+       and the ⋯ button wrapped onto a line of its own. */
+    @media (max-width:420px) { header { column-gap:6px; } }
+    /* At 360px the row still came up 7px short: 36px buttons (above the 24px
+       minimum target, WCAG 2.5.8) keep it on one line. */
+    @media (max-width:380px) { header .iconbtn { width:36px; height:36px; } }
     /* Focus mode (hide the exercise-list COLUMN) is a desktop-only layout toggle;
        the phone layout neuters it (the list stays a collapsible section below), so
        the ◧ button did nothing when tapped — an inert, cryptic icon (Paul). Drop
