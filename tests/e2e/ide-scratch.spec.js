@@ -51,14 +51,15 @@ test.describe('Sandbox merged into the IDE', () => {
 
   test('creating and deleting scratch files works, keeping at least one', async ({ page }) => {
     const before = await page.locator('.ide-file.st-scratch').count();
-    page.once('dialog', d => d.accept('mytest')); // name prompt
     await page.locator('.ide-file-new').click();
+    await page.locator('#askinput').fill('mytest'); // the name is asked in-page
+    await page.locator('#askok').click();
     await expect(page.locator('.ide-file.st-scratch')).toHaveCount(before + 1);
     // The freshly-created file becomes the open one.
     await expect(page.locator('#ideopenname')).toHaveText(/mytest/);
-    // Delete it (confirm) → back to the original count.
-    page.once('dialog', d => d.accept());
+    // Delete it (in-page confirm) → back to the original count.
     await page.locator('#idedelete').click();
+    await page.locator('#askok').click();
     await expect(page.locator('.ide-file.st-scratch')).toHaveCount(before);
   });
 

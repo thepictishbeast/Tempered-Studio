@@ -56,8 +56,8 @@ const deps = [
   "const RS_PRIM = /^(?:i8|i16|i32|i64|i128|isize|u8|u16|u32|u64|u128|usize|f32|f64|bool|char|str)$/;",
 ].join('\n');
 const moduleSrc = deps + '\n' + grabFn('highlightRust') + '\n' + grabFn('mdToHtml') +
-  '\n' + grabFn('hlLines') + '\n' + grabFn('cleanBookMarkdown') +
-  '\nexport { esc, highlightRust, mdToHtml, hlLines, cleanBookMarkdown };\n';
+  '\n' + grabFn('hlLines') + '\n' + grabFn('cleanBookMarkdown') + '\n' + grabFn('errorCodesIn') +
+  '\nexport { esc, highlightRust, mdToHtml, hlLines, cleanBookMarkdown, errorCodesIn };\n';
 
 const dir = mkdtempSync(join(tmpdir(), 'ts-gui-'));
 const modPath = join(dir, 'gui-extract.mjs');
@@ -65,7 +65,7 @@ writeFileSync(modPath, moduleSrc);
 let mod;
 try { mod = await import(pathToFileURL(modPath).href); }
 finally { rmSync(dir, { recursive: true, force: true }); }
-const { esc, highlightRust, mdToHtml, hlLines, cleanBookMarkdown } = mod;
+const { esc, highlightRust, mdToHtml, hlLines, cleanBookMarkdown, errorCodesIn } = mod;
 
 let fails = 0;
 const ok = m => console.log('  ok   — ' + m);
@@ -318,6 +318,32 @@ check(mdToHtml('### The API of Mutex<T>').includes('id="the-api-of-mutext"'),
   const badFont = [...html.matchAll(/(?<![-\w])font:\s*[^;{}\s][^;{}]*\sinherit\s*[;}]/g)].map(m => m[0]);
   check(badFont.length === 0,
     'no `font:` shorthand with `inherit` among its values' + (badFont.length ? ` — ${badFont.join(' | ')}` : ''));
+}
+
+// 13. Explain (?) offers the error codes the terminal SHOWS, in every tier —
+// Learn never parses Diagnostics, so the old native prompt was always blank there
+// (walkthrough 2026-10-13, #5). Each code once, in order, through ANSI colour.
+{
+  const raw = '\x1b[0m\x1b[1m\x1b[38;5;9merror[E0308]\x1b[0m\x1b[1m: mismatched types\x1b[0m\n'
+    + 'error[E0599]: no method named `shout` found for type `u8`\n'
+    + 'error[E0308]: mismatched types\nwarning: unused variable: `x`\n'
+    + 'error: aborting due to 3 previous errors\n'
+    + 'Some errors have detailed explanations: E0308, E0599.\n';
+  check(JSON.stringify(errorCodesIn(raw)) === '["E0308","E0599"]',
+    'errorCodesIn: each error code once, in order, through ANSI colour');
+  check(errorCodesIn('warning: unused variable: `x`\n').length === 0 && errorCodesIn(null).length === 0,
+    'errorCodesIn: no error code on screen → nothing to offer');
+}
+
+// 14. No native browser dialogs anywhere in the GUI (walkthrough 2026-10-13, #5):
+// alert/confirm/prompt block the page, read badly on phones and to screen readers,
+// and the Android app's WebView (no WebChromeClient) drops them — so confirm() is
+// always "no" there. Every question goes through the in-page ask() (#askdlg).
+{
+  const hits = html.split('\n').map((l, i) => [i + 1, l])
+    .filter(([, l]) => /(?<![\w$.])(?:window\.)?(?:alert|confirm|prompt)\(/.test(l));
+  check(hits.length === 0, 'no native alert/confirm/prompt call in gui/index.html'
+    + (hits.length ? ' — at line ' + hits.map(([n]) => n).join(', ') : ''));
 }
 
 console.log('');

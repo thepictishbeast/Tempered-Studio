@@ -120,14 +120,16 @@ test.describe('Fullscreen IDE', () => {
     });
     expect(lockedId, 'some exercise is still behind the baby-steps gate').toBeTruthy();
     expect(gatedStatus).toBe(423);
-    // In the UI, opening a gated file prompts the jump-ahead confirm; declining
+    // In the UI, opening a gated file asks (in-page) to jump ahead; declining
     // it opens nothing (the open filename stays "no file open").
     await page.evaluate(() => localStorage.removeItem('ts-ide-state'));
     await page.evaluate(() => showView('ide'));
     await page.waitForSelector('.ide-file');
     expect(await page.locator('#ideopenname').textContent()).toContain('no file open');
-    page.once('dialog', d => d.dismiss());
-    await page.evaluate((id) => ideOpenFile(id, 'locked'), lockedId);
+    // Not awaited in the page: ideOpenFile waits until the question is answered.
+    await page.evaluate((id) => { ideOpenFile(id, 'locked'); }, lockedId);
+    await expect(page.locator('#askmsg')).toContainText('locked');
+    await page.locator('#askno').click();
     await page.waitForTimeout(150);
     expect(await page.locator('#ideopenname').textContent()).toContain('no file open');
   });

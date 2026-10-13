@@ -16,15 +16,16 @@ test.describe('Lesson → Practice handoff (Batch A)', () => {
     const target = await page.locator('#docview .practicelink').first().getAttribute('data-id');
     expect(target).toBeTruthy();
 
-    // Decline the soft-gate confirm -> we stay on the lesson, nothing selected.
-    page.once('dialog', (d) => d.dismiss());
+    // Decline the soft-gate question (in-page) -> we stay on the lesson, nothing selected.
     await page.locator('#docview .practicelink').first().click();
+    await expect(page.locator('#askmsg')).toContainText('Jump ahead');
+    await page.locator('#askno').click();
     await page.waitForTimeout(300);
     await expect(page.locator('#docview .lessonbody')).toBeVisible();
 
     // Accept it -> force-select + jump to Practice with that exercise current.
-    page.once('dialog', (d) => d.accept());
     await page.locator('#docview .practicelink').first().click();
+    await page.locator('#askok').click();
     await page.waitForFunction(
       (want) => (document.getElementById('exId')?.textContent || document.body.textContent).includes(want),
       target,

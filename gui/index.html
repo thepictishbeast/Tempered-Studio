@@ -892,6 +892,17 @@
   .keyshelp-grid p { margin:5px 0; font-size:13px; }
   .keyshelp kbd { display:inline-block; min-width:16px; text-align:center; background:var(--bg-3); border:1px solid var(--line); border-radius:5px; padding:1px 6px; font:600 12px var(--mono); margin-right:8px; color:var(--fg); }
   .keyshelp-foot { margin:16px 0 0; color:var(--fg-dim); font-size:12px; }
+  /* In-page question box (ask) — stands in for the browser's native dialogs. The
+     padding sits on the form, so a click that lands on the dialog itself can only
+     be on the backdrop (→ cancel). */
+  .askdlg { background:var(--bg-2); color:var(--fg); border:1px solid var(--line); border-radius:12px; padding:0; width:min(420px, calc(100vw - 32px)); box-shadow:0 12px 44px rgba(0,0,0,.55); }
+  .askdlg::backdrop { background:rgba(0,0,0,.55); }
+  .askdlg form { padding:18px 20px; }
+  .askdlg p { margin:0 0 12px; font-size:14px; line-height:1.45; white-space:pre-line; }
+  .askchoices { display:flex; flex-wrap:wrap; gap:8px; }
+  .askchoices:empty { display:none; }
+  .askdlg .pin { width:100%; max-width:none; font-size:14px; padding:8px 10px; }
+  .askbtns { display:flex; justify-content:flex-end; gap:8px; margin-top:14px; }
   .scroll::-webkit-scrollbar{width:9px}.scroll::-webkit-scrollbar-thumb{background:var(--line);border-radius:9px}
 
   /* Phone-first reflow: the locked learner profile is mobile-first. Below ~760px
@@ -1185,6 +1196,18 @@
     </div>
   </div>
 
+  <!-- In-page question box, driven by ask(). It replaces the browser's native
+       alert/confirm/prompt, which block the page, read badly on phones and to
+       screen readers, and are silently dropped by the Android app's WebView. -->
+  <dialog id="askdlg" class="askdlg" aria-labelledby="askmsg">
+    <form method="dialog">
+      <p id="askmsg"></p>
+      <div id="askchoices" class="askchoices"></div>
+      <input id="askinput" class="pin" aria-labelledby="askmsg" spellcheck="false" autocomplete="off" hidden />
+      <div class="askbtns"><button type="button" class="ghost" id="askno">Cancel</button><button class="run" id="askok" value="ok">OK</button></div>
+    </form>
+  </dialog>
+
   <script>
     // ── Real xterm.js terminal — renders true ANSI, like live rpro output ──
     const C = { fg:'#e6e6e6', bg:'#000000', green:'#36c46b', red:'#ff5c5c',
@@ -1262,6 +1285,40 @@
       if (!t) { t = document.createElement('div'); t.id = 'toast'; document.body.appendChild(t); }
       t.textContent = msg; t.classList.add('show');
       clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove('show'), 1400);
+    }
+    // ask(): the in-page question box (#askdlg). Every question the GUI asks goes
+    // through it, never a native browser dialog (see the note on the markup). It
+    // doesn't block the page: it resolves once answered, and Esc, Cancel or a click
+    // outside the box all count as "no".
+    //   ask({ text })                      → a notice with one OK button
+    //   ask({ text, ok, no })              → true / false
+    //   ask({ text, input: 'default' })    → the typed text, or null
+    //   ask({ text, choices: ['a', 'b'] }) → the picked choice, or null
+    function ask({ text, ok = 'OK', no = '', input = null, choices = null }) {
+      const dlg = document.getElementById('askdlg');
+      if (!dlg || dlg.open) return Promise.resolve(null); // one question at a time
+      const inp = document.getElementById('askinput');
+      const okB = document.getElementById('askok'), noB = document.getElementById('askno');
+      document.getElementById('askmsg').textContent = text;
+      document.getElementById('askchoices').replaceChildren(...(choices || []).map(c => {
+        const b = document.createElement('button'); b.className = 'ghost'; b.value = b.textContent = c; return b;
+      }));
+      inp.hidden = input === null; inp.value = input || '';
+      okB.hidden = !!choices; okB.textContent = ok;
+      noB.hidden = !(no || input !== null || choices); noB.textContent = no || 'Cancel';
+      noB.onclick = () => dlg.close('');
+      dlg.onclick = e => { if (e.target === dlg) dlg.close(''); }; // the backdrop
+      dlg.returnValue = '';
+      const back = document.activeElement; // hand focus back to the asker afterwards
+      return new Promise(resolve => {
+        dlg.onclose = () => {
+          const v = dlg.returnValue;
+          try { if (back) back.focus(); } catch (_) {}
+          resolve(choices ? (v || null) : input !== null ? (v === 'ok' ? inp.value : null) : v === 'ok');
+        };
+        dlg.showModal();
+        if (input !== null) inp.select();
+      });
     }
 
     // ── Gamification: XP, level, streak & badges, all derived from the server's
@@ -1656,12 +1713,12 @@
       try {
         let res = await fetch('api/workspace/file?id=' + encodeURIComponent(id));
         if (res.status === 423) {
-          if (!confirm('That exercise is locked — jump ahead and open it anyway?')) return;
+          if (!await ask({ text: 'That exercise is locked — jump ahead and open it anyway?', ok: 'Jump ahead', no: 'Not yet' })) return;
           await fetch('api/select', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, force: true }) });
           res = await fetch('api/workspace/file?id=' + encodeURIComponent(id));
         }
-        if (res.status === 409) { alert('That exercise is already completed — reset it in Practice to edit it again.'); return; }
-        if (!res.ok) { alert('Could not open the file (HTTP ' + res.status + ').'); return; }
+        if (res.status === 409) { ask({ text: 'That exercise is already completed — reset it in Practice to edit it again.' }); return; }
+        if (!res.ok) { ask({ text: 'Could not open the file (HTTP ' + res.status + ').' }); return; }
         const f = await res.json();
         ideOpen = { id: f.id, name: f.name, status: f.status, content: f.content };
         const st = ideLoad(); st.openId = f.id; ideSave(st);
@@ -1669,7 +1726,7 @@
         ideMarkOpenInTree();
         if (isPhone()) ideSetSidebar(false); // a phone drawer steps aside for the editor
         if (ideView) setTimeout(() => { try { ideView.focus(); } catch (_) {} }, 0);
-      } catch (_) { alert('Could not reach the local server.'); }
+      } catch (_) { ask({ text: 'Could not reach the local server.' }); }
     }
     function ideRenderEditor() {
       const host = document.getElementById('idehost'); if (!host) return;
@@ -1745,19 +1802,21 @@
       if (isPhone()) ideSetSidebar(false);
       if (ideView) setTimeout(() => { try { ideView.focus(); } catch (_) {} }, 0);
     }
-    function ideNewScratch() {
+    async function ideNewScratch() {
       if (!sbxFiles) sbxFiles = sbxLoadFiles();
       const n = sbxFiles.files.length + 1;
-      let name = (prompt('Name the new scratch file:', 'scratch' + n) || '').trim();
+      let name = await ask({ text: 'Name the new scratch file:', input: 'scratch' + n, ok: 'Create' });
+      if (name === null) return; // Cancel / Esc → no new file
+      name = name.trim();
       if (!name) name = 'scratch' + n;
       sbxFiles.files.push({ name, code: SBX_DEFAULT }); sbxSaveFiles();
       ideRenderTree();
       ideOpenScratch(sbxFiles.files.length - 1);
     }
-    function ideDeleteScratch(idx) {
+    async function ideDeleteScratch(idx) {
       if (!sbxFiles) sbxFiles = sbxLoadFiles();
-      if (sbxFiles.files.length <= 1) { alert('Keep at least one scratch file.'); return; }
-      if (!confirm('Delete scratch “' + sbxFiles.files[idx].name + '”? Its code will be lost.')) return;
+      if (sbxFiles.files.length <= 1) { ask({ text: 'Keep at least one scratch file.' }); return; }
+      if (!await ask({ text: 'Delete scratch “' + sbxFiles.files[idx].name + '”? Its code will be lost.', ok: 'Delete', no: 'Keep it' })) return;
       sbxFiles.files.splice(idx, 1);
       if (sbxFiles.active >= sbxFiles.files.length) sbxFiles.active = sbxFiles.files.length - 1;
       sbxSaveFiles();
@@ -2139,6 +2198,7 @@
     // rustc (via an installed Termux) and calls this back asynchronously.
     let termuxPending = null;
     let termuxOp = 'run'; // which op fired the pending Termux call (run/check/test/explain)
+    let termuxCode = ''; // the code a pending on-device Explain asked about (for its status)
     const _runCbs = new Map(); // cbId -> onResult, for runnable code examples (free-play)
     window.__termuxResult = async function (cbId, res) {
       // A runnable code example (lesson/book) — route to its callback and STOP,
@@ -2175,14 +2235,9 @@
       }
       term.writeln('');
       // Explain output is REFERENCE text (rustc --explain), not a run — no
-      // pass/fail verdict, no tutor, no predict re-arm.
-      if (termuxOp === 'explain') {
-        term.writeln(passed ? g('— rustc --explain, on-device via Termux —')
-                            : r('✗ explain failed') + d(' — is that a real diagnostic code (e.g. E0382)?'));
-        statusEl().textContent = passed ? 'explained ✓' : 'explain failed';
-        try { setInsights(true); } catch (_) {}
-        return;
-      }
+      // pass/fail verdict, no tutor, no predict re-arm (see explainDone).
+      if (termuxOp === 'explain') { explainDone(passed, termuxCode); return; }
+      runCodes = errorCodesIn(text); // the codes this output shows — Explain (?) offers them
       // Check type-checks only (no run) — reflect that in the verdict, not "ran".
       const okMsg = termuxOp === 'check' ? '✓ type-checks — no errors' : '✓ compiled & ran on-device';
       term.writeln(passed ? g(okMsg) + d(' — native rustc via Termux')
@@ -2213,6 +2268,17 @@
       // Gate ONCE per exercise (Paul): the prediction persists after a run so you
       // can edit + re-run freely; it only re-arms on the NEXT exercise (loadCurrent).
     };
+
+    // Explain prints REFERENCE text (rustc --explain), not a run of the exercise:
+    // `ok` only says the lookup worked. So: no pass/fail verdict and no ✓ (the badge
+    // must never read as the exercise passing), and the last run's codes,
+    // Diagnostics, Tutor and progress stay as they were. Used by both run paths.
+    function explainDone(ok, code) {
+      term.writeln(ok ? d('— what ' + code + ' means (rustc --explain). Your code was not run. —')
+                      : r('✗ no explanation for ' + code) + d(' — is it a real error code (like E0382)?'));
+      statusEl().textContent = ok ? 'explained ' + code : 'explain failed';
+      try { setInsights(true); } catch (_) {}
+    }
 
     // Live path: POST a whitelisted op to the local server and stream the raw
     // output (already ANSI-colored by the toolchain) into the xterm terminal.
@@ -2251,11 +2317,15 @@
           return;
         }
         const out = await res.json();
-        lastOut = out; // remember for tier re-render (see setMode)
         term.clear();
         // Raw bytes carry ANSI from the toolchain — write verbatim, no recolor.
         if (out.raw_stdout) term.write(out.raw_stdout.replace(/\n/g,'\r\n'));
         if (out.raw_stderr) term.write(out.raw_stderr.replace(/\n/g,'\r\n'));
+        // Explain's `passed` only means the lookup worked: no verdict, and it must not
+        // replace the last run (lastOut, Diagnostics, codes, Tutor) — see explainDone.
+        if (op === 'explain') { term.writeln(''); explainDone(out.passed, (extra && extra.code) || ''); return; }
+        lastOut = out; // remember for tier re-render (see setMode)
+        runCodes = errorCodesIn((out.raw_stderr || '') + '\n' + (out.raw_stdout || '')); // Explain (?) offers these
         const verdict = out.passed
           ? g('✓ passed') + d(' in ' + out.duration_ms + 'ms')
           : r('✗ failed') + d(' in ' + out.duration_ms + 'ms — read it top-to-bottom, then fix & re-run');
@@ -2307,6 +2377,7 @@
             if (op === 'explain' && !stdin) {
               term.writeln(r('no diagnostic code to explain')); statusEl().textContent = 'error'; return;
             }
+            termuxCode = op === 'explain' ? stdin : '';
             statusEl().textContent = op === 'explain' ? 'explaining on-device…'
               : op === 'check' ? 'type-checking on-device…' : 'compiling on-device…';
             term.writeln(d('$ ' + op + (op === 'explain' ? ' — rustc --explain ' + stdin
@@ -2343,9 +2414,20 @@
 
     // ── live rendering: the page reflects the REAL current exercise + list ──
     let lastCode = '';
-    // The most recent run/check/explain response, kept so a tier switch can
-    // re-render the Diagnostics panel without re-running (Learn withholds it).
+    // The most recent run/check response (never an explain — that is reference
+    // text), kept so a tier switch can re-render the Diagnostics panel without
+    // re-running (Learn withholds it).
     let lastOut = null;
+    // The error codes the last Run/Check printed, in order. Kept in EVERY tier: Learn
+    // withholds only the parsed panel — the codes are still on screen in the
+    // terminal — so Explain (?) never makes the learner retype one.
+    let runCodes = [];
+    // Each `error[E0381]`-style code in raw compiler output, once, in order of
+    // appearance. ANSI colour is stripped first so a coloured header still matches.
+    function errorCodesIn(text) {
+      const plain = String(text || '').replace(/\x1b\[[0-9;]*m/g, '');
+      return [...new Set((plain.match(/error\[E\d{3,4}\]/g) || []).map(m => m.slice(6, -1)))];
+    }
     const esc = s => (s == null ? '' : String(s)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
     // Escape first (XSS-safe), then render `inline code` spans as <code> — for
     // glossary definitions, which are plain-text but written with markdown backticks.
@@ -2406,7 +2488,7 @@
               else if (r && r.error === 'done') {
                 // Re-open a completed exercise to REDO it (Paul: reset-to-redo was
                 // dead). Per-exercise only; it re-counts as done once you pass again.
-                if (confirm('“' + el.dataset.id + '” is completed. Re-open it to practise again?')) {
+                if (await ask({ text: '“' + el.dataset.id + '” is completed. Re-open it to practise again?', ok: 'Re-open', no: 'Not now' })) {
                   try {
                     const rr = JSON.parse(AndroidSeam.resetExercise(el.dataset.id));
                     if (rr && rr.ok) { statusEl().textContent = 'reopened — redo it'; await loadState(false); }
@@ -2427,7 +2509,7 @@
             else if (res.status === 409) { statusEl().textContent = '“' + el.dataset.id + '” is done — press ↺ Reset to redo it'; }
             else if (res.status === 423) {
               // Soft gate: locked until earlier exercises are done — offer to jump ahead.
-              if (confirm('“' + el.dataset.id + '” is locked — the earlier exercises build up to it.\nJump ahead anyway?')) {
+              if (await ask({ text: '“' + el.dataset.id + '” is locked — the earlier exercises build up to it.\nJump ahead anyway?', ok: 'Jump ahead', no: 'Not yet' })) {
                 const r2 = await fetch('api/select', { method: 'POST', headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({ id: el.dataset.id, force: true }) });
                 if (r2.ok) { statusEl().textContent = 'jumped ahead'; await loadState(false); }
@@ -2971,6 +3053,7 @@
       curExercise = j.exercise; curOriginal = j.code || '';
       // fresh exercise → reset the hint ladder + the Tutor prompt (no run yet)
       hintLevel = 0;
+      runCodes = []; // …and Explain (?) forgets the previous exercise's error codes
       const hb = document.getElementById('hintbox'); if (hb) hb.innerHTML = '';
       const hbtn = document.getElementById('hintbtn'); if (hbtn) hbtn.disabled = false;
       renderTutor(null); // back to the pre-run prompt for the new exercise
@@ -4236,13 +4319,13 @@
       try {
         let res = await fetch('api/select', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) });
         if (res.status === 423) {
-          if (!confirm('“' + id + '” is locked — the earlier exercises build up to it.\nJump ahead anyway?')) return;
+          if (!await ask({ text: '“' + id + '” is locked — the earlier exercises build up to it.\nJump ahead anyway?', ok: 'Jump ahead', no: 'Not yet' })) return;
           res = await fetch('api/select', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, force: true }) });
         }
         if (res.ok) { await loadState(false); showView('practice'); }
-        else if (res.status === 409) { alert('“' + id + '” is already done — open it from the list and press ↺ Reset to redo it.'); }
-        else { alert('Could not open that exercise.'); }
-      } catch (_) { alert('Offline — could not open that exercise.'); }
+        else if (res.status === 409) { ask({ text: '“' + id + '” is already done — open it from the list and press ↺ Reset to redo it.' }); }
+        else { ask({ text: 'Could not open that exercise.' }); }
+      } catch (_) { ask({ text: 'Offline — could not open that exercise.' }); }
     }
 
     // The Glossary tab: a browsable, filterable list of every built-in term
@@ -4509,6 +4592,7 @@
       }
       const tag = (e.target.tagName || '').toLowerCase();
       if (tag === 'textarea' || tag === 'input' || e.metaKey || e.ctrlKey || e.altKey) return;
+      if (document.querySelector('dialog[open]')) return; // a question (ask) is open: its keys are its own
       const fn = KEYMAP[e.key.toLowerCase()];
       if (fn) { e.preventDefault(); fn(); }
     });
@@ -4807,8 +4891,17 @@
       // Sandbox runs on the web via POST /api/sandbox, and on-device via the
       // Termux bridge (op 'sandbox') — available on both, so no gating.
     }
-    document.getElementById('explainbtn').onclick = () => {
-      const code = (prompt('Diagnostic code to explain (letters/digits only):', lastCode) || '').trim();
+    // Explain (?) works on the error code(s) already on screen: those the last
+    // Run/Check printed to the terminal (every tier — Learn reads its Diagnostics by
+    // hand, so lastCode is always '' there) plus any the Diagnostics panel lists
+    // (Dev's live check). One → explain it now; several → pick one; none → type one.
+    document.getElementById('explainbtn').onclick = async () => {
+      const listed = [...document.querySelectorAll('#diag .diagcode[data-code]')].map(el => el.dataset.code);
+      const codes = [...new Set(runCodes.concat(listed))].filter(c => /^E\d{3,4}$/.test(c));
+      const picked = codes.length === 1 ? codes[0] : await ask(codes.length
+        ? { text: 'Which error code do you want explained? The first one is usually the one to fix.', choices: codes }
+        : { text: 'Which error code do you want explained? Type one, like E0382.', input: '', ok: 'Explain' });
+      const code = String(picked || '').replace(/[^A-Za-z0-9]/g, '').toUpperCase();
       if (code) runOp('explain', { code });
     };
     // Move the editor caret to a 1-based line and select it. Char-offset based
