@@ -2285,7 +2285,7 @@
                           : r('✗ exit ' + res.exit) + d(' — read the output above; tap 📋 copy to share it'));
       statusEl().textContent = passed ? (termuxOp === 'check' ? 'type-checks ✓' : 'ran on-device ✓') : 'failed (on-device)';
       try { setInsights(true); } catch (_) {}
-      renderTutor(passed, ''); // Termux output is raw (no parsed code) → by-hand phrasing
+      renderTutor(passed, '', termuxOp); // Termux output is raw (no parsed code) → by-hand phrasing
       if (!passed) term.scrollToFirstError(); // open on the first error line, not the verdict
       // Record the outcome to the local store — the mobile WRITE-path that fixes
       // the lockout (passing now marks Done + advances). Refresh the list/current
@@ -2302,8 +2302,10 @@
         if (advancedTo) {
           let nextTitle = null;
           try { const cur = await fetch('api/current').then(r => r.json()); renderCurrent(cur); nextTitle = cur && cur.title; } catch (_) {}
-          term.writeln(''); term.writeln(g('✓ exercise complete — advancing to ' + (nextTitle || advancedTo)));
-          statusEl().textContent = 'advanced ✓';
+          // renderCurrent cleared the old run, so the next exercise starts clean:
+          // just this note in the console, and the badge back to "ready".
+          term.writeln(g('✓ exercise complete — advancing to ' + (nextTitle || advancedTo)));
+          statusEl().textContent = 'ready';
           if (!maybeCelebratePhase(exsData, completedPhase)) celebrate(advancedTo, nextTitle);
         }
       }
@@ -2385,8 +2387,12 @@
         if (out.raw_stdout) term.write(out.raw_stdout.replace(/\n/g,'\r\n'));
         if (out.raw_stderr) term.write(out.raw_stderr.replace(/\n/g,'\r\n'));
         runCodes = errorCodesIn((out.raw_stderr || '') + '\n' + (out.raw_stdout || '')); // Explain (?) offers these
+        // A passing Check only type-checks — nothing ran — so it is never "passed"
+        // here (a pass means it compiles AND runs cleanly; only Run finishes one).
+        const checkOnly = op === 'check' && out.passed;
         const verdict = out.passed
-          ? g('✓ passed') + d(' in ' + out.duration_ms + 'ms')
+          ? (checkOnly ? g('✓ type-checks — no errors') + d(' in ' + out.duration_ms + 'ms — Check doesn’t run it; press Run')
+                       : g('✓ passed') + d(' in ' + out.duration_ms + 'ms'))
           : r('✗ failed') + d(' in ' + out.duration_ms + 'ms — read it top-to-bottom, then fix & re-run');
         term.writeln(''); term.writeln(verdict);
         renderDiag(out); // sets lastCode (Assist/Dev only; '' in Learn — by-hand)
@@ -2400,7 +2406,7 @@
           if (!predict.graded && predict.locked && out.status != null && (op === 'run' || !out.passed)) {
             showPrediction(out, payload.source !== predict.src);
           }
-          renderTutor(out.passed, lastCode);
+          renderTutor(out.passed, lastCode, op);
         }
         // Gate ONCE per exercise (Paul): the prediction persists after a run, so
         // Run stays unlocked for edit-and-rerun; it only re-arms on the NEXT
@@ -2408,7 +2414,7 @@
         // A failed run opens on its FIRST error line. Done last: opening the
         // Insights pane (above) narrows the console, re-wrapping its lines.
         if (!out.passed) term.scrollToFirstError();
-        statusEl().textContent = out.passed ? 'passed' : 'failed';
+        statusEl().textContent = checkOnly ? 'type-checks ✓' : out.passed ? 'passed' : 'failed';
         // Refresh the list/gauge/attempts after every run; if a pass advanced
         // the learner, load the next exercise into the editor.
         let exsData = null;
@@ -2419,8 +2425,10 @@
         if (out.advanced_to) {
           let nextTitle = null;
           try { const cur = await fetch('api/current').then(r => r.json()); renderCurrent(cur); nextTitle = cur && cur.title; } catch (_) {}
-          term.writeln(''); term.writeln(g('✓ exercise complete — advancing to ' + (nextTitle || out.advanced_to)));
-          statusEl().textContent = 'advanced ✓';
+          // renderCurrent cleared the old run, so the next exercise starts clean:
+          // just this note in the console, and the badge back to "ready".
+          term.writeln(g('✓ exercise complete — advancing to ' + (nextTitle || out.advanced_to)));
+          statusEl().textContent = 'ready';
           // A completed phase is the bigger moment — else the usual exercise popup.
           if (!maybeCelebratePhase(exsData, completedPhase)) celebrate(out.advanced_to, nextTitle);
         }
@@ -2482,7 +2490,9 @@
           statusEl().textContent = 'offline';
         }
       } finally {
-        btns.forEach(x=>x && (x.disabled=false));
+        // Re-enable — but if a pass just loaded the next exercise, Learn's predict
+        // gate is armed again (Run/Check carry .gated): leave those locked.
+        btns.forEach(x=>x && (x.disabled = x.classList.contains('gated')));
         refit();
       }
     }
@@ -3154,6 +3164,13 @@
       const hbtn = document.getElementById('hintbtn'); if (hbtn) hbtn.disabled = false;
       renderTutor(null); // back to the pre-run prompt for the new exercise
       setInsights(insightsPinned()); // collapse the drawer for a clean IDE (unless pinned)
+      // fresh exercise → clear the last run too: its output, parsed diagnostics and
+      // Explain code belong to the OLD exercise (they lingered after auto-advance).
+      // The caller sets the status badge.
+      term.clear(); lastOut = null; lastCode = '';
+      diagMarks = new Set(); setEditorErrorLines([]);
+      document.getElementById('diag').innerHTML = '<div class="diag note"><span class="lvl">[i]</span><span class="msg">no run yet'
+        + '<small>press Run / Check to see real diagnostics</small></span></div>';
       // fresh exercise → reset the prediction
       predict = { compiles: null, code: '', src: null, locked: false, graded: false };
       document.querySelectorAll('.pbtn').forEach(b => b.classList.remove('sel'));
@@ -3224,12 +3241,18 @@
     // question forever (Paul: "there is no answer to the question it asks; the
     // questions should disappear once it's satisfied"). Still strictly guide-only
     // — it NEVER types the fix, and in Learn mode it never reveals the error code
-    // (you find that by hand; `code` is '' there). `passed` null = no run yet.
-    function renderTutor(passed, code) {
+    // (you find that by hand; `code` is '' there). `passed` null = no run yet;
+    // `op` is the op that ran — a passing 'check' compiled but ran nothing.
+    function renderTutor(passed, code, op) {
       const el = document.getElementById('tutorbox');
       if (!el) return;
       const guide = ' <small>(I guide — I never type your fix. Press <b>Hint</b> to climb the ladder.)</small>';
-      if (passed === true) {
+      if (passed === true && op === 'check') {
+        // Not "Solved": nothing ran, so nothing is complete (a Check only logs an
+        // attempt). Only a clean Run finishes one — some compile, then panic.
+        el.innerHTML = '✓ <b>No compile errors</b> — but Check doesn’t run your code, so the exercise isn’t finished yet.'
+          + ' Press <b>Run</b> to run it: it’s done when it runs cleanly.';
+      } else if (passed === true) {
         el.innerHTML = '✓ <b>Solved</b> — it compiles and runs. In one sentence, what was the bug?'
           + ' Then it’s on to the next exercise. <small>(No hint needed — you did it.)</small>';
       } else if (passed === false) {
@@ -3289,7 +3312,8 @@
         rows = codes.map(c =>
           `<div class="diag error"><span class="lvl">[!]</span><span class="msg"><span class="diagcode" role="button" tabindex="0" data-code="${esc(c)}" aria-label="Explain ${esc(c)}" title="click to explain ${esc(c)}">${esc(c)}</span>`
           + `<small>click to explain ${esc(c)}</small></span></div>`);
-        if (out.passed) rows = ['<div class="diag note"><span class="lvl">[i]</span><span class="msg">passed<small>no diagnostics — nice</small></span></div>'];
+        // "no errors", not "passed": a passing Check compiled but ran nothing.
+        if (out.passed) rows = ['<div class="diag note"><span class="lvl">[i]</span><span class="msg">no errors<small>no diagnostics — nice</small></span></div>'];
         else if (!rows.length) rows = ['<div class="diag note"><span class="lvl">[i]</span><span class="msg">see terminal<small>read the raw output by hand</small></span></div>'];
       }
       box.innerHTML = rows.join('');

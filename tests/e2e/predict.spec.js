@@ -44,7 +44,8 @@ test.describe('predict-first step', () => {
     // the code the guess was made on, not flip to "you said it fails, it passed".
     await page.evaluate(() => window.__cm.set('fn main() {}\n'));
     await page.locator('#checkbtn').click();
-    await expect(page.locator('#statusline')).toContainText('passed', { timeout: 30_000 });
+    // A passing Check only type-checks (it never reads as "passed", which means ran).
+    await expect(page.locator('#statusline')).toContainText('type-checks', { timeout: 30_000 });
     await expect(page.locator('#predictDone')).toContainText('outcome: right');
     await expect(page.locator('#predictDone')).not.toContainText('you said it fails');
     await expect(page.locator('#predictChange'), 'a graded guess is final').toHaveCount(0);

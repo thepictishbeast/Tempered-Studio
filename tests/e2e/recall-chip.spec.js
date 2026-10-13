@@ -23,9 +23,13 @@ test('a passed exercise adds an actionable RECALL chip that explains on activati
   await page.locator('#menuBtn').click(); // open the ⋯ menu (mode switcher lives there now)
   await page.locator('#modesw button[data-mode="assist"]').click();
   await page.evaluate((v) => window.__cm.set(v), FIX);
-  await page.locator('#runbtn').click();
-  // a passing run shows "passed" or, when it advances to the next exercise, "advanced ✓"
-  await expect(page.locator('#statusline')).toContainText(/passed|advanced/, { timeout: 30_000 });
+  // Wait on the run itself: a pass advances, and the next exercise starts clean
+  // (badge back to "ready"), so the "passed" badge is only a brief flash.
+  const [runRes] = await Promise.all([
+    page.waitForResponse((r) => r.url().includes('/api/run') && r.request().method() === 'POST', { timeout: 30_000 }),
+    page.locator('#runbtn').click(),
+  ]);
+  expect((await runRes.json()).passed, 'the fix passes, so its code is recorded as overcome').toBe(true);
 
   // reload so the RECALL queue re-fetches; the overcome code now shows as a chip
   await page.goto('/');
