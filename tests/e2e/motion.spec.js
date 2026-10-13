@@ -95,4 +95,38 @@ test.describe('Motion polish', () => {
     await expect(c.locator('.cg-h')).toHaveText(/Phase complete/);
     await expect(c.locator('.cg-s')).toContainText('Control Flow');
   });
+
+  test('under reduced motion the completion popups still SHOW (they just do not move)', async ({ browser }) => {
+    // The old reduced-motion fade ended at opacity 0, and the global guard's .001ms
+    // durations jumped straight to that end, so these learners never saw the popup.
+    const ctx = await browser.newContext({ reducedMotion: 'reduce' });
+    const page = await ctx.newPage();
+    await page.goto('/');
+    await page.waitForSelector('#exTitle');
+    const opacity = () => page.evaluate(() => parseFloat(getComputedStyle(document.getElementById('celebrate')).opacity));
+    await page.evaluate(() => celebrate('basics/next', 'Next one'));
+    await page.waitForTimeout(200);
+    expect(await opacity(), 'the exercise popup shows').toBeGreaterThan(0.9);
+    await page.evaluate(() => celebratePhase('control-flow'));
+    await page.waitForTimeout(200);
+    expect(await opacity(), 'the phase milestone shows').toBeGreaterThan(0.9);
+    await ctx.close();
+  });
+
+  test('nothing moves forever while idle: a still throbber, pulses that stop', async ({ page }) => {
+    // WCAG 2.2.2: the terminal throbber spun at 11 frames a second with nothing
+    // running, and the Run / prediction pulses looped forever beside the text.
+    await page.goto('/');
+    await page.locator('.exlist .ex[data-id]').first().waitFor();
+    await page.waitForTimeout(120);
+    const before = await page.locator('#throb').textContent();
+    await page.waitForTimeout(450);
+    expect(await page.locator('#throb').textContent(), 'the idle throbber is still').toBe(before);
+    const loops = await page.evaluate(() => {
+      const run = document.getElementById('runbtn'), bar = document.getElementById('predictbar');
+      run.classList.add('cta'); bar.classList.add('needs-answer');
+      return [getComputedStyle(run).animationIterationCount, getComputedStyle(bar).animationIterationCount];
+    });
+    expect(loops, 'Run and prediction pulse counts').not.toContain('infinite');
+  });
 });

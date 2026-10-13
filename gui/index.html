@@ -61,6 +61,11 @@
     /* --tok-c lightened #6b7884→#808d9c: on the CM6 editor's near-black bg (#101010)
        the comment grey was 4.2:1; #808d9c clears AA (≈5.2:1) there and on #1c1c1c. */
     --tok-k:#ff7a3c; --tok-s:#7ec97e; --tok-c:#808d9c; --tok-n:#d2a8ff; --tok-t:#5aa9ff; --tok-m:#e0b020;
+    /* Selected code in the CM6 editors: --fg and every --tok-* stay ≥4.5:1 on it
+       (lowest: --tok-c, 4.6:1). CM6's default lavender (#d7d4f0) left selected
+       dark-theme code at 1.3–2.4:1. It is a quiet tint (1.2:1 on --bg-2) because
+       --tok-c binds: lighten --tok-c first for a stronger one. */
+    --sel:#182436;
   }
   html[data-theme="light"] {
     /* Warm paper light theme (cards stay crisp white so the AA-tuned status
@@ -70,13 +75,16 @@
     --edge-hi:rgba(255,255,255,0); /* white cards — the top-edge highlight is a no-op here */
     /* The STATUS palette needs light variants too: the dark-tuned greens/blues
        (#36c46b, #5aa9ff…) are ~2.5–3:1 on white — axe flagged them serious.
-       These deepened values clear WCAG AA (≥4.5:1) for small text on --bg-2. */
-    --done:#1a7f37; --current:#0e7490; --note:#0a66c2;
-    --error:#c62828; --warn:#9a6700; --skipped:#9a6700;
-    --accent-soft:#c44000; /* .excount text + the Run gradient's far stop: 4.99:1 on white */
+       These deepened values clear WCAG AA (≥4.5:1) for small text on --bg-2, --bg
+       AND --bg-3: #1a7f37 / #9a6700 were 4.1–4.4:1 on --bg-3, --bg and the green
+       prediction summary (a badge's "earned ✓", that summary, a [~] warning row). */
+    --done:#177533; --current:#0e7490; --note:#0a66c2;
+    --error:#c62828; --warn:#855800; --skipped:#855800;
+    --accent-soft:#c44000; /* .excount and other small text on white: 5.15:1 */
     /* darkened for AA on the light code-block bg (#f1ece2): #2e7d32/#9a6700/#6b7884
        were ~4.1–4.4:1 there (hello-world's println!+strings tripped the axe gate). */
     --tok-k:#b7410e; --tok-s:#216b26; --tok-c:#4f5b68; --tok-n:#6f42c1; --tok-t:#0a66c2; --tok-m:#855800;
+    --sel:#e3eefb; /* --fg and every light --tok-* ≥4.7:1 on it (lowest: --tok-k) */
   }
   * { box-sizing: border-box; }
   body {
@@ -89,6 +97,10 @@
      📂 🖥 💾 🗑 in buttons drew as empty boxes on systems without an emoji font,
      while the same emoji in a <div> drew fine. One rule covers every control. */
   button, input, select, textarea { font-family:inherit; }
+  /* Placeholder text is text (WCAG 1.4.3), so it gets an AA colour, never the UA
+     grey: Chromium's #757575 is 4.1:1 on the dark --bg-2, Firefox's 54% fade of
+     --fg 3.6:1 on the light one. --fg-dim is 7.4:1 / 5.8:1 there. */
+  ::placeholder { color:var(--fg-dim); opacity:1; }
   header {
     display:flex; align-items:center; gap:18px; padding:10px 16px; position:relative;
     background:linear-gradient(180deg,var(--bg-2),var(--bg)); border-bottom:1px solid var(--line);
@@ -303,10 +315,15 @@
   .ide-file.open { background:var(--bg-3); box-shadow:inset 2px 0 0 var(--accent); }
   .ide-file .ide-dot { width:7px; height:7px; border-radius:50%; flex:0 0 auto; background:var(--fg-dim); }
   .ide-file.st-current .ide-dot { background:var(--accent); }
-  .ide-file.st-done .ide-dot { background:#36c46b; }
+  .ide-file.st-done .ide-dot { background:var(--done); } /* #36c46b was 2.3:1 on the light --bg-2 */
   .ide-file.st-locked .ide-dot { background:transparent; border:1px solid var(--fg-dim); }
   .ide-file .ide-fname { font-family:var(--mono); font-size:11.5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .ide-file.st-locked .ide-fname::after { content:' 🔒'; }
+  /* Status is not colour-only (WCAG 1.4.1): done and current rows carry the ✓ / ▸ of
+     the exercise list, as a flex item of the row: inside the ellipsized name, a long
+     name (a third of the files) cut it off. Locked rows: the lock and a hollow dot. */
+  .ide-file.st-done::after { content:'✓'; flex:none; color:var(--done); }
+  .ide-file.st-current::after { content:'▸'; flex:none; color:var(--accent); }
   .ide-file.st-scratch .ide-dot { background:#c9a227; }
   .ide-file-new { display:flex; align-items:center; gap:6px; width:100%; text-align:left; background:transparent;
     border:1px dashed var(--line); border-radius:8px; padding:5px 8px; margin:3px 0 2px; cursor:pointer;
@@ -434,7 +451,8 @@
   /* One-tap resume: jump to your first unread lesson. */
   /* #b7410e (the darker brand orange) not var(--accent): white on the bright
      dark-theme accent is only ~3.5:1; on #b7410e it's 5.56:1 — passes WCAG AA in
-     both themes. (The Run button dodges this axe check only via its gradient bg.) */
+     both themes. (The Run button starts from it too: axe can't check a gradient,
+     which is how its old --accent stops got past the gate at 3.5:1.) */
   .docview .continuecta { display:inline-block; margin:6px 0 16px; padding:11px 20px; border:none;
     border-radius:10px; background:#b7410e; color:#fff; font:600 14.5px/1.2 var(--ui); cursor:pointer;
     max-width:100%; text-align:left; transition:filter .15s, transform .15s; }
@@ -453,7 +471,7 @@
   .docview .roadprog { display:inline-flex; align-items:center; gap:7px; margin-left:auto; font-size:11px; font-weight:600; color:var(--fg-dim); flex:0 0 auto; }
   .docview .roadprog-bar { width:54px; height:6px; border-radius:999px; background:var(--bg-3); border:1px solid var(--line); overflow:hidden; }
   .docview .roadprog-bar i { display:block; height:100%; width:0; border-radius:999px; background:linear-gradient(90deg,var(--accent),#ffb37a); transition:width .6s cubic-bezier(.2,.8,.3,1); }
-  .docview .roadprog.done { color:#36c46b; }
+  .docview .roadprog.done { color:var(--done); } /* theme-aware: #36c46b was 2.1:1 on the light --bg */
   @media (prefers-reduced-motion: reduce) { .docview .roadprog-bar i { transition:none; } }
   .docview .roadlessons { margin:0; padding-left:20px; }
   .docview .roadlessons li { padding:2px 0; font-size:13.5px; }
@@ -581,14 +599,19 @@
   .predict { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-top:10px; font-size:13px;
     border:1px solid transparent; border-radius:12px; padding:4px; transition:all .2s ease; }
   .predict .pl { color:var(--fg-dim); }
-  /* The prediction is a gate — when unanswered, make it impossible to miss. */
+  /* The prediction is a gate — when unanswered, make it impossible to miss. It
+     pulses twice (4s), then the border, tint and ring hold it: an endless pulse
+     beside the code being read is motion nobody can stop (WCAG 2.2.2). */
   .predict.needs-answer { border-color:var(--accent); background:rgba(247,76,0,.07);
-    padding:12px 14px; box-shadow:0 0 0 3px rgba(247,76,0,.12); animation:predictPulse 2s ease-in-out infinite; }
+    padding:12px 14px; box-shadow:0 0 0 3px rgba(247,76,0,.12); animation:predictPulse 2s ease-in-out 2; }
   .predict.needs-answer .pl { color:var(--accent); font-weight:700; }
   @keyframes predictPulse { 0%,100%{box-shadow:0 0 0 3px rgba(247,76,0,.10)} 50%{box-shadow:0 0 0 5px rgba(247,76,0,.22)} }
   .predict-prose { font-size:13px; margin:2px 0 0; color:var(--fg-dim); }
   .predict-done { margin:8px 0 2px; padding:9px 14px; border-radius:10px; font-size:13.5px; font-weight:600;
     color:var(--done); background:rgba(126,211,33,.08); border:1px solid rgba(126,211,33,.3); }
+  /* The "change" link had no colour of its own, so it took the UA's #0000EE (#551A8B
+     once visited): 2.0:1 / 1.7:1 on the dark theme's tinted bar. --note: 7.8:1 / 5.0:1. */
+  .predict-done a { color:var(--note); }
   /* Learn / Assist / Dev mode switcher — Learn is strict (you do the work). */
   .modesw { display:inline-flex; border:1px solid var(--line); border-radius:7px; overflow:hidden; margin-left:10px; vertical-align:middle; }
   .modesw button { font:600 11px var(--ui); padding:2px 9px; background:var(--bg-2); color:var(--fg-dim); border:0; border-right:1px solid var(--line); cursor:pointer; }
@@ -601,7 +624,11 @@
      quick jumps that don't need to sit on-screen all the time (Paul). */
   .appmenu{position:fixed;top:52px;right:12px;z-index:120;width:236px;max-width:calc(100vw - 24px);
     background:var(--bg-2);border:1px solid var(--line);border-radius:12px;box-shadow:0 16px 48px rgba(0,0,0,.5);
-    padding:8px;display:flex;flex-direction:column;gap:2px}
+    padding:8px;display:flex;flex-direction:column;gap:2px;
+    /* A fixed sheet can't be page-scrolled: at 400% zoom (320x256 CSS px) or on a
+       landscape phone its last rows (Reading size) were out of reach (WCAG 1.4.10).
+       It fits the viewport and scrolls itself; so do .xppanel and .keyshelp-card. */
+    max-height:calc(100vh - 64px);overflow-y:auto}
   .appmenu[hidden]{display:none}
   .appmenu .menusec{padding:4px 2px}
   .appmenu .menusec + .menusec{border-top:1px solid var(--line);margin-top:2px;padding-top:8px}
@@ -733,10 +760,15 @@
   .editor .etools .ghost{padding:6px 11px;font-size:13px;border-radius:8px}
   .editor .etools .ghost.ic{min-width:34px;text-align:center;font-size:15px;line-height:1}
   .editor .etools #statusline{margin-left:auto;font-size:11px;white-space:nowrap}
-  .run{background:linear-gradient(135deg,var(--accent),var(--accent-soft));color:#fff;border:none;
+  /* White label: both stops are FIXED deep oranges in both themes (5.6:1 / 5.2:1),
+     like .continuecta and .modesw .sel. The dark theme's --accent → --accent-soft
+     stops were 3.5:1 → 2.6:1, and axe skips gradients, so no gate saw it. */
+  .run{background:linear-gradient(135deg,#b7410e,var(--accent-deep));color:#fff;border:none;
     padding:9px 16px;border-radius:9px;font-weight:600;cursor:pointer;font-size:13px;box-shadow:0 4px 14px rgba(247,76,0,.35),inset 0 1px 0 rgba(255,255,255,.28);transition:.15s}
   .run:hover{transform:translateY(-1px);box-shadow:0 6px 18px rgba(247,76,0,.55),inset 0 1px 0 rgba(255,255,255,.28)}
-  .run.cta{animation:runReady 1.4s ease-in-out infinite}
+  /* 3 pulses (4.2s) when the guess unlocks Run, then still: .cta stays on through every
+     later run while the learner reads the output (WCAG 2.2.2: stop within 5s). */
+  .run.cta{animation:runReady 1.4s ease-in-out 3}
   /* keep the inset top-gloss in both keyframes so it doesn't flicker while the CTA pulses */
   @keyframes runReady{0%,100%{box-shadow:0 4px 14px rgba(247,76,0,.35),inset 0 1px 0 rgba(255,255,255,.28)}50%{box-shadow:0 4px 22px rgba(247,76,0,.7),inset 0 1px 0 rgba(255,255,255,.28)}}
   /* gated (Learn, no prediction yet): clearly not pressable yet */
@@ -747,6 +779,12 @@
   /* tactile press + keyboard focus rings across the IDE controls */
   .run:active:not(.gated),.ghost:active:not(.gated){transform:translateY(0)}
   .run:focus-visible,.ghost:focus-visible,.pbtn:focus-visible,.iconbtn:focus-visible,.modesw button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  /* The ⋯ menu rows, the IDE explorer's group headers + file rows and the glossary ✕
+     swapped the UA ring for a --bg-2 → --bg-3 shift (1.1–1.2:1) or a glyph tint
+     (2.3–2.7:1), under the 3:1 a focus indicator needs (WCAG 2.4.7 / 1.4.11). The
+     --accent ring is 4.7–5.6:1; inset on the rows so a scrolling list can't clip it. */
+  .appmenu .menuitem:focus-visible,.ide-group-h:focus-visible,.ide-file:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+  .gl-x:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
 
   /* embedded terminal — a real xterm.js widget */
   .terminal { margin:0 20px 18px; border:1px solid var(--line); border-radius:var(--radius); background:#000000;
@@ -762,7 +800,7 @@
      theme vars would flip dark here and fail contrast). Match the old xterm theme. */
   .conout .con-r{color:#ff6b6b} .conout .con-g{color:#36c46b}
   .conout .con-b{color:#5aa9ff} .conout .con-d{color:#9aa7b4}
-  .throbber{color:var(--accent-soft);display:inline-block}
+  .throbber{color:var(--accent-soft);display:inline-block;min-width:1ch} /* keeps its slot while blank (idle) */
   .termcopy{background:var(--bg-3);color:var(--fg-dim);border:1px solid var(--line);border-radius:7px;
     padding:4px 10px;font:600 11.5px var(--mono);cursor:pointer}
   .termcopy:hover{color:var(--fg);border-color:var(--accent)}
@@ -782,7 +820,7 @@
   .tmxsetup-cmd{display:flex;align-items:stretch;gap:8px;flex-wrap:wrap}
   .tmxsetup-cmd code{flex:1 1 200px;min-width:0;overflow:auto;white-space:nowrap;background:var(--bg);color:var(--fg);
     border:1px solid var(--line);border-radius:8px;padding:9px 11px;font:12px/1.4 var(--mono)}
-  .tmxcopy{flex:0 0 auto;background:linear-gradient(135deg,var(--accent),var(--accent-soft));color:#fff;border:none;
+  .tmxcopy{flex:0 0 auto;background:linear-gradient(135deg,#b7410e,var(--accent-deep));color:#fff;border:none; /* stops: see .run */
     border-radius:8px;padding:9px 14px;font-weight:700;font-size:13px;cursor:pointer;
     box-shadow:0 3px 10px rgba(247,76,0,.3),inset 0 1px 0 rgba(255,255,255,.28);transition:.15s}
   .tmxcopy:hover{transform:translateY(-1px);box-shadow:0 5px 14px rgba(247,76,0,.45),inset 0 1px 0 rgba(255,255,255,.28)}
@@ -811,10 +849,11 @@
     45%{box-shadow:0 0 0 7px rgba(247,76,0,.28);border-color:var(--accent)}
     100%{box-shadow:0 0 0 0 rgba(247,76,0,0)}}
   #xpchip .xp-streak{font-weight:700}
-  #xpchip .xp-streak.hot{color:#ff7a3c}
+  #xpchip .xp-streak.hot{color:var(--accent-soft)} /* theme-aware: #ff7a3c was 2.6:1 on the light --bg-2 */
   @media (max-width:760px){#xpchip .xp-bar{display:none}}
   .xppanel{position:fixed;top:52px;right:10px;z-index:82;width:min(320px,92vw);background:var(--bg-2);
-    border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:14px 15px}
+    border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:14px 15px;
+    max-height:calc(100vh - 64px);overflow-y:auto} /* fits a short viewport, like .appmenu */
   .xppanel h3{margin:0 0 3px;font-size:15px}
   .xppanel .xp-sub{color:var(--fg-dim);font-size:12px;margin:0 0 11px}
   .xppanel .badgegrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:9px}
@@ -829,8 +868,10 @@
   .badge.earned .bn{color:var(--fg)}
   .badge .bgoal{font-size:9.5px;font-weight:700;color:var(--fg-dim);letter-spacing:.02em}
   .badge .bgoal.earned{color:var(--done)}
+  /* FIXED bright first stop: the dark #1a1207 label needs a light ground, and the
+     light theme's --accent (#b7410e) left it at 3.3:1 (#f74c00: 5.3:1). */
   .xptoast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%) translateY(10px) scale(.96);z-index:85;
-    background:linear-gradient(135deg,var(--accent),#ffb37a);color:#1a1207;border-radius:12px;padding:11px 18px;
+    background:linear-gradient(135deg,#f74c00,#ffb37a);color:#1a1207;border-radius:12px;padding:11px 18px;
     font-size:13.5px;font-weight:700;box-shadow:var(--shadow);opacity:0;pointer-events:none;
     transition:opacity .22s cubic-bezier(.2,.8,.3,1),transform .22s cubic-bezier(.2,.8,.3,1)}
   .xptoast.show{opacity:1;transform:translateX(-50%) translateY(0) scale(1)}
@@ -849,21 +890,26 @@
     17%{transform:translateX(-50%) scale(1)}
     82%{opacity:1;transform:translateX(-50%) scale(1)}
     100%{opacity:0;transform:translateX(-50%) scale(.96)}}
-  /* Bigger, GOLD variant for a phase-completion milestone (a whole topic done). */
-  #celebrate.milestone{border-color:#e0a92e;background:linear-gradient(160deg,var(--bg-2),rgba(224,169,46,.15));padding:15px 26px}
+  /* Bigger, GOLD variant for a phase-completion milestone (a whole topic done). The
+     gold tint sits on an opaque --bg-2, never on what the popup covers (on a
+     scrolled phone page, the always-dark terminal). */
+  #celebrate.milestone{border-color:#e0a92e;background:linear-gradient(160deg,var(--bg-2),rgba(224,169,46,.15)),var(--bg-2);padding:15px 26px}
   #celebrate.milestone .cg-h{color:#e0a92e;font-size:19px}
+  /* #e0a92e is 2.1:1 on the light card (large text needs 3:1); a deep gold keeps the cue (5.6:1+). */
+  html[data-theme="light"] #celebrate.milestone .cg-h{color:#855800}
   #celebrate.milestone.show{animation:celebpop 3.6s ease forwards}
   @media (prefers-reduced-motion: reduce){
-    #celebrate.show{animation:celebfade 2.6s ease forwards}
-    #celebrate.milestone.show{animation:celebfade 3.6s ease forwards}
-    @keyframes celebfade{0%{opacity:0}8%{opacity:1}82%{opacity:1}100%{opacity:0}}}
+    /* Shown still, with no keyframes: the global guard below forces every animation
+       to .001ms, which jumped the old fade straight to its opacity:0 end, so these
+       learners never saw the popup at all. JS removes .show after 2.6s / 3.6s. */
+    #celebrate.show,#celebrate.milestone.show{animation:none;opacity:1;transform:translateX(-50%)}}
   /* 🩺 Logs view */
   .docview .logbar{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:6px 0 12px}
   .docview .logtabs{display:flex;gap:5px;flex-wrap:wrap}
   .docview .logtab{background:var(--bg-2);color:var(--fg-dim);border:1px solid var(--line);border-radius:8px;
     padding:6px 11px;font-size:12.5px;cursor:pointer}
   .docview .logtab.on{color:var(--fg);border-color:var(--accent);box-shadow:inset 0 -2px 0 var(--accent)}
-  .docview .logtab .logn{opacity:.6;font-size:11px}
+  .docview .logtab .logn{font-size:11px} /* no opacity: .6 put the count at 2.5–4.3:1 */
   .docview .logbtn{background:var(--bg-2);color:var(--accent);border:1px solid var(--line);border-radius:8px;
     padding:6px 12px;font:600 12.5px var(--ui);cursor:pointer}
   .docview .logbtn:hover{border-color:var(--accent)}
@@ -872,7 +918,7 @@
     border-bottom:1px solid var(--line);font:12px/1.5 var(--mono);white-space:pre-wrap;word-break:break-word}
   .docview .logrow:last-child{border-bottom:none}
   .docview .logrow.lv-error{background:rgba(247,76,0,.06)}
-  .docview .logt{color:var(--fg-dim)}.docview .logcat{color:var(--accent-soft)}
+  .docview .logt{color:var(--fg-dim)}.docview .logcat{color:var(--accent)} /* the light --accent-soft was 4.4:1 on the error tint */
   .docview .logrow.lv-error .logmsg{color:var(--fg)}
   /* 📚 Library */
   .docview .liblist-ul{list-style:none;margin:0;padding:0;display:grid;gap:10px}
@@ -911,7 +957,9 @@
   .keyshelp { position:fixed; inset:0; background:rgba(0,0,0,.55); align-items:center; justify-content:center; z-index:60; }
   /* Show ONLY when not [hidden]. An author `display:flex` overrides the UA `[hidden]{display:none}` regardless of specificity, which would leave this full-viewport overlay always painted and swallowing every click. */
   .keyshelp:not([hidden]) { display:flex; }
-  .keyshelp-card { background:var(--bg-2); border:1px solid var(--line); border-radius:12px; padding:20px 24px; max-width:600px; width:90%; box-shadow:0 12px 44px rgba(0,0,0,.55); }
+  /* Fits the viewport and scrolls: centred in a short one (400% zoom), a taller card
+     overflowed above AND below, with no way to scroll to either end. */
+  .keyshelp-card { background:var(--bg-2); border:1px solid var(--line); border-radius:12px; padding:20px 24px; max-width:600px; width:90%; box-shadow:0 12px 44px rgba(0,0,0,.55); max-height:calc(100vh - 32px); overflow-y:auto; }
   .keyshelp-card h2 { margin:0 0 14px; font-size:16px; }
   .keyshelp-grid { display:flex; gap:28px; flex-wrap:wrap; }
   .keyshelp-grid h3 { font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--fg-dim); margin:0 0 8px; }
@@ -1023,6 +1071,20 @@
     .iconbtn { width:40px; height:40px; }
     /* A touch of breathing room between stacked panes. */
     .pane { padding-bottom:2px; }
+  }
+  /* Desktop layout in a narrow window or at 200% zoom (half a 1920px screen): the
+     one-row header's fixed widths (wordmark, a 200px gauge, the XP bar, four icon
+     buttons, eight 18px gaps) need about 1,000–1,040px. Below that the tab labels
+     wrapped and the icon buttons were pushed past the right edge, where
+     body{overflow:hidden} hid them for good, and the menu is the only way to Editor
+     mode and Reading size (WCAG 1.4.4 / 1.4.10). Drop the wordmark and the XP bar as
+     narrow phones do, keep labels on one line, and let the gauge's bar give way first. */
+  @media (min-width: 760.02px) and (max-width: 1099px) { /* not 761px: a zoomed width can fall between */
+    .brandtext, #xpchip .xp-bar { display:none; }
+    .tab { white-space:nowrap; }
+    .gauge { min-width:0; }
+    .gauge .track { flex:1 1 90px; }
+    .gauge .pct { flex:none; }
   }
 </style>
 <!-- Offline CodeMirror 6 bundle (MIT) — real single-layer editor to replace the
@@ -1596,8 +1658,9 @@
         return `<button class="logtab${c === logFilter ? ' on' : ''}" data-f="${c}">${esc(c === 'all' ? 'All' : LOG_CATS[c])} <span class="logn">${n}</span></button>`;
       }).join('');
       const rows = LOGS.filter(e => logFilter === 'all' || e.cat === logFilter).slice().reverse();
+      // An error row names its level in text too: a 6% tint alone was colour-only (WCAG 1.4.1).
       const body = rows.length ? rows.map(e =>
-        `<div class="logrow lv-${esc(e.level)}"><span class="logt">${esc(e.t)}</span><span class="logcat">${esc(e.cat)}</span><span class="logmsg">${esc(e.msg)}</span></div>`).join('')
+        `<div class="logrow lv-${esc(e.level)}"><span class="logt">${esc(e.t)}</span><span class="logcat">${esc(e.cat)}${e.level === 'error' ? ' · error' : ''}</span><span class="logmsg">${esc(e.msg)}</span></div>`).join('')
         : '<p style="color:var(--fg-dim)">Nothing here yet. Errors — compiler · device · UI · network — show up the moment they happen.</p>';
       const dump = rows.map(e => `[${e.t}] ${e.cat}/${e.level}  ${e.msg}`).join('\n');
       d.innerHTML = '<h1>🩺 Logs</h1>'
@@ -1715,7 +1778,10 @@
         '.cm-gutters': { background: 'transparent', border: 'none', color: 'var(--fg-dim)' },
         '.cm-lineNumbers .cm-gutterElement': { padding: '0 6px 0 8px', minWidth: '22px' },
         '&.cm-focused .cm-cursor': { borderLeftColor: 'var(--accent)' },
-        '.cm-selectionBackground, &.cm-focused .cm-selectionBackground': { background: 'var(--accent-soft)' },
+        // CM6's own focused-selection selector: its base theme painted #d7d4f0 through
+        // it, out-ranking '&.cm-focused .cm-selectionBackground'. The same selector ties,
+        // and this theme wins on order. --sel keeps every token readable (see :root).
+        '.cm-selectionBackground, &.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground': { background: 'var(--sel)' },
       });
       return [
         CM.lineNumbers(), CM.history(), CM.drawSelection(), CM.rust(),
@@ -2494,7 +2560,7 @@
             termuxPending = 'r' + Date.now();
             // Pass the op so Check does a fast type-check (rustc --emit=metadata, no run).
             try { AndroidSeam.runViaTermux(stdin, termuxPending, op); }
-            catch (e2) { term.writeln(r('Termux bridge error') + d(': ' + e2)); statusEl().textContent = 'error'; }
+            catch (e2) { termuxPending = null; term.writeln(r('Termux bridge error') + d(': ' + e2)); statusEl().textContent = 'error'; }
           } else {
             term.writeln(r('No on-device compiler yet') + d(' — install Termux to run Rust natively on your phone (offline, no account):'));
             term.writeln(d('  1. Install Termux  ·  f-droid.org/packages/com.termux'));
@@ -2705,7 +2771,8 @@
         '.cm-lineNumbers .cm-gutterElement': { padding: '0 6px 0 8px', minWidth: '22px' },
         '.cm-activeLine, .cm-activeLineGutter': { background: 'transparent' },
         '&.cm-focused .cm-cursor': { borderLeftColor: 'var(--accent)' },
-        '.cm-selectionBackground, &.cm-focused .cm-selectionBackground': { background: 'var(--accent-soft)' },
+        // CM6's focused-selection selector, so --sel wins (see makeEditorExtensions).
+        '.cm-selectionBackground, &.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground': { background: 'var(--sel)' },
         '.cm-lineNumbers .cm-gutterElement.cm-errline': { color: 'var(--error)', fontWeight: '700' },
       });
       // Gutter error-marks: a StateField of gutter markers for the lines the last
@@ -2825,10 +2892,10 @@
       try { localStorage.setItem('ts-mode', m); } catch (_) {}
       document.querySelectorAll('#modesw button').forEach(b =>
         b.classList.toggle('sel', b.dataset.mode === m));
-      // The predict bar is the active-recall gate; it's prominent in Learn mode,
-      // dimmed (optional) in Assist/Dev. The switcher highlight shows the mode.
-      const pb = document.getElementById('predictbar');
-      if (pb) pb.style.opacity = m === 'learn' ? '1' : '.55';
+      // The predict bar is the active-recall gate: it pulses (needs-answer) in Learn
+      // and is optional in Assist/Dev, but never dimmed: it stays operable there, and
+      // opacity .55 put its label + buttons at 2.2–3.8:1 (WCAG 1.4.3). The switcher
+      // highlight shows the mode.
       // Dev tier gets CM6's native conveniences (auto-close brackets, indent-on-
       // input); Learn/Assist keep the plain editor. Swap them via the compartment.
       if (cmView && cmModeComp) cmView.dispatch({ effects: cmModeComp.reconfigure(cmDevExtensions()) });
@@ -3452,9 +3519,18 @@
     initCM(); // mount the CodeMirror editor before the first exercise loads into it
     loadState(true);
 
-    // throbber in the header (mirrors the TUI Throbber)
+    // throbber in the terminal bar (mirrors the TUI Throbber). It spins only while a
+    // request is in flight (runOp disables #explainbtn for exactly that long; an
+    // on-device run sets termuxPending), shows a still "…" under reduced motion, and
+    // is blank when idle. It used to spin forever, whatever the app was doing (WCAG 2.2.2).
     const frames = ["⠋","⠙","⠹","⠸","⠼","⠴","⠦","⠧","⠇","⠏"]; let i = 0;
-    setInterval(() => { document.getElementById('throb').textContent = frames[i++ % frames.length]; }, 90);
+    const calm = window.matchMedia ? matchMedia('(prefers-reduced-motion: reduce)') : null;
+    setInterval(() => {
+      const el = document.getElementById('throb');
+      const busy = document.getElementById('explainbtn')?.disabled || !!termuxPending;
+      const next = !busy ? '' : calm && calm.matches ? '…' : frames[i++ % frames.length];
+      if (el && el.textContent !== next) el.textContent = next;
+    }, 90);
 
     // tab + exercise selection (visual)
     // ── nav tabs: real view switching ──

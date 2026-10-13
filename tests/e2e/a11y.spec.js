@@ -38,7 +38,7 @@ async function prep(page, theme) {
     try {
       localStorage.setItem('ts-theme', t);
       // Audit the DEFAULT (Learn) tier deterministically — a prior spec may have
-      // left ts-mode=assist/dev (which dims the predict bar), so pin it here.
+      // left ts-mode=assist/dev, so pin it here (Assist has its own test below).
       localStorage.setItem('ts-mode', 'learn');
     } catch (e) {}
   }, theme);
@@ -128,5 +128,19 @@ for (const theme of ['dark', 'light']) {
       await page.locator('.ide-file').first().waitFor();
       expect(await blockingViolations(page, `ide/${theme}`), 'ide').toEqual([]);
     });
+  });
+}
+
+// Assist/Dev keep the predict bar OPERABLE (an optional guess), so it must meet AA
+// there too: it used to be dimmed to opacity .55 (label 3.0:1 dark / 2.2:1 light,
+// buttons 3.8:1 light). This init script runs after prep()'s Learn pin.
+for (const theme of ['dark', 'light']) {
+  test(`a11y (${theme} theme) — main view in Assist mode`, async ({ page }) => {
+    await prep(page, theme);
+    await page.addInitScript(() => { try { localStorage.setItem('ts-mode', 'assist'); } catch (e) {} });
+    await page.goto('/');
+    await page.locator('.exlist .ex').first().waitFor();
+    await expect(page.locator('#predictbar')).toBeVisible();
+    expect(await blockingViolations(page, `main-assist/${theme}`), 'main view, Assist').toEqual([]);
   });
 }

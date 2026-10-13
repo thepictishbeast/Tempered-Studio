@@ -346,6 +346,13 @@ check(mdToHtml('### The API of Mutex<T>').includes('id="the-api-of-mutext"'),
     + (hits.length ? ' — at line ' + hits.map(([n]) => n).join(', ') : ''));
 }
 
+// 15. Placeholder text is text (WCAG 1.4.3), so it needs an AA colour of its own: the
+// UA default (Chromium's #757575, Firefox's 54% fade) is 4.1:1 on the dark --bg-2 and
+// 3.6:1 on the light one, and #predcode's placeholder carries the instructions. A
+// script can't reliably read a ::placeholder computed style, so pin the global rule.
+check(/(^|[\s}])::placeholder\s*\{[^}]*color:\s*var\(--fg-dim\)[^}]*opacity:\s*1/m.test(html),
+  'a global ::placeholder rule sets color:var(--fg-dim) at opacity:1');
+
 console.log('');
 if (fails === 0) console.log('GUI TRANSFORM TESTS PASS ✓');
 else { console.log('GUI TRANSFORM TESTS FAILED: ' + fails); process.exit(1); }
