@@ -1,4 +1,4 @@
-id = "advanced/04c_guards_not_counted"
+id = "advanced/04d_guards_not_counted"
 title = "Match guards don't count toward exhaustiveness"
 difficulty = "advanced"
 estimated_minutes = 5

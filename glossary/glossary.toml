@@ -582,3 +582,10 @@ definition = "Encapsulation means keeping a type's fields private and letting ou
 book_chapter = ""
 source = "The Rust Book, ch.18.1 \"Characteristics of Object-Oriented Languages\" (Encapsulation that Hides Implementation Details)"
 
+[[term]]
+name = "states as types"
+aliases = ["typestate", "type state", "state types"]
+definition = "A design where each stage in a value's life is its own type, such as an unpaid order and a paid order. Each type has only the methods that make sense at that stage, so using a value at the wrong stage is a compile error rather than a bug found later, and the method that moves to the next stage takes `self` by value, so the earlier stage can't be used again."
+book_chapter = ""
+source = "The Rust Book, ch.18.3 \"Implementing an Object-Oriented Design Pattern\" (Encoding States and Behavior as Types)"
+

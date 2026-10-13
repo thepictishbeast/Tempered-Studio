@@ -1,0 +1,18 @@
+id = "advanced/04b_states_as_types"
+title = "States as types: an unpaid order can't ship"
+difficulty = "advanced"
+estimated_minutes = 5
+concept = "states-as-types"
+expected_error_code = "E0599"
+solution_outline = """
+Each stage is its own type, and `ship` exists only on `PaidOrder`, so an
+`UnpaidOrder` has no `ship` method (E0599). That is the design working: shipping
+an unpaid order can't even be written. Take it through the stages in order:
+`let shipped = order.pay().ship();`. Each step takes `self` by value, so the
+unpaid and paid values are used up as the order moves on.
+"""
+
+[[book_refs]]
+chapter = "ch05-03-method-syntax"
+anchor = "method-syntax"
+why = "A method's first parameter can be `self`, `&self` or `&mut self`; one that takes `self` by value uses the value up, which is how a stage hands over to the next."
