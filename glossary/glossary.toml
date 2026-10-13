@@ -575,3 +575,10 @@ definition = "A module is a named group of code inside a crate, written `mod nam
 book_chapter = "ch07-03-paths-for-referring-to-an-item-in-the-module-tree"
 source = "The Rust Book, ch.7.2 \"Defining Modules to Control Scope and Privacy\" and ch.7.3 \"Paths for Referring to an Item in the Module Tree\""
 
+[[term]]
+name = "encapsulation"
+aliases = ["encapsulate", "invariant", "invariants"]
+definition = "Encapsulation means keeping a type's fields private and letting outside code use the type only through its public methods. The methods can then keep the fields consistent with each other (a rule that must always hold, such as a balance matching the deposits made), and the inside of the type can change later without breaking the code that uses it."
+book_chapter = ""
+source = "The Rust Book, ch.18.1 \"Characteristics of Object-Oriented Languages\" (Encapsulation that Hides Implementation Details)"
+

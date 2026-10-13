@@ -1,0 +1,18 @@
+id = "advanced/04a_go_through_the_method"
+title = "Encapsulation: change a type through its methods"
+difficulty = "advanced"
+estimated_minutes = 5
+concept = "encapsulation"
+expected_error_code = "E0616"
+solution_outline = """
+`deposits` is private to `bank`, so `main` can't touch it (E0616). That is the
+point: pushing straight onto `deposits` would skip `recalculate`, and `balance`
+would still say 100. Use the door the module provides: `account.deposit(50);`.
+`deposit` records the amount and keeps the balance in step, so the program
+prints "Balance: 150".
+"""
+
+[[book_refs]]
+chapter = "ch07-03-paths-for-referring-to-an-item-in-the-module-tree"
+anchor = "making-structs-and-enums-public"
+why = "A struct's fields stay private outside its module unless marked `pub`, so outside code works through the module's public functions."

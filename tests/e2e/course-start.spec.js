@@ -65,13 +65,14 @@ test.describe('Course start: Lesson 1 first, titles not ids', () => {
       .toHaveAttribute('data-id', 'advanced/04_operator_overload_add');
   });
 
-  // Lessons 33, 33b, 29b, 26b and 21b had no exercises.
+  // Lessons 33, 33b, 29b, 26b, 21b and 32b had no exercises.
   for (const [lesson, id] of [
     ['33-refutability', 'advanced/04b_refutable_parameter'],
     ['33b-guards-bindings-nested', 'advanced/04c_guards_not_counted'],
     ['29b-deref-drop', 'smart-pointers/06b_box_needs_star'],
     ['26b-lifetime-elision', 'lifetimes/08b_elision_one_in_one_out'],
     ['21b-modules', 'modules/00_nested_module_path'],
+    ['32b-encapsulation', 'advanced/04a_go_through_the_method'],
   ]) {
     test(`${lesson}'s Practice card opens ${id}`, async ({ page }) => {
       await page.goto('/');
