@@ -8,7 +8,7 @@ const { defineConfig } = require('@playwright/test');
 // launches) — the repeat offenders behind the recall-chip / dev-diag-jump
 // flakes. They get their own project with a generous ceiling; a timeout is a
 // ceiling, not a wait, so green runs stay just as fast.
-const COMPILE_SPECS = /(dev-diag-jump|tutor|recall-chip|web|explain-flow|predict)\.spec\.js/;
+const COMPILE_SPECS = /(dev-diag-jump|tutor|recall-chip|web|explain-flow|predict|output-readability)\.spec\.js/;
 
 module.exports = defineConfig({
   testDir: '.',

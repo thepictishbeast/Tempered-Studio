@@ -621,7 +621,8 @@
   .ldrawer.open{transform:translateX(0)}
   .ldrawer[hidden]{display:none}
   .ldrawer .ldrawer-bar{display:flex;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid var(--line);flex:0 0 auto}
-  .ldrawer .ldrawer-title{font-weight:800;font-size:14px;color:var(--fg)}
+  /* flex:1 keeps × at the right edge when an Explain write-up hides the full-view link */
+  .ldrawer .ldrawer-title{flex:1;font-weight:800;font-size:14px;color:var(--fg)}
   .ldrawer .ldrawer-full{margin-left:auto;color:var(--note);font-size:12px;font-weight:600;text-decoration:none;white-space:nowrap}
   .ldrawer .ldrawer-full:hover{text-decoration:underline}
   .ldrawer .ldrawer-x{background:var(--bg-3);border:1px solid var(--line);border-radius:8px;width:30px;height:30px;
@@ -1080,7 +1081,7 @@
       <a href="#" class="ldrawer-full" id="lessonDrawerFull" title="Open in the Learn tab">full view ↗</a>
       <button class="ldrawer-x" id="lessonDrawerX" type="button" aria-label="Close lesson">×</button>
     </div>
-    <div class="ldrawer-body bookbody lessonbody scroll" id="lessonDrawerBody"></div>
+    <div class="ldrawer-body bookbody lessonbody scroll" id="lessonDrawerBody" tabindex="0"></div>
   </aside>
   <!-- Always-there pull tab on the left edge (Practice view) to grab the lesson. -->
   <button id="lessonHandle" class="lesson-handle" type="button" title="Open the lesson" aria-label="Open the lesson drawer" hidden>📖<span class="lh-lbl">Lesson</span></button>
@@ -1239,7 +1240,34 @@
     const term = {
       write(s) { const e = conEl(); if (!e) return; e.insertAdjacentHTML('beforeend', conRender(s)); e.scrollTop = e.scrollHeight; },
       writeln(s) { this.write(s + '\n'); },
-      clear() { const e = conEl(); if (e) e.innerHTML = ''; },
+      // clear() also drops the scroll-past-end room scrollToFirstError may add.
+      clear() { const e = conEl(); if (e) { e.innerHTML = ''; e.style.paddingBottom = ''; } },
+      // write() pins the BOTTOM (live output). Once a FAILED run's output is all
+      // in, re-anchor on its first error line at the TOP of the view: the bottom
+      // showed only the trailing help/notes + verdict, while the Tutor says read
+      // top-to-bottom. A runtime panic anchors on its `thread '…' panicked` line
+      // (compiler warnings sit above it); neither → the top of the output. A
+      // Range measures the line, so wrapping counts. Must not throw: runOp's
+      // catch would read it as "server unreachable".
+      scrollToFirstError() {
+        const e = conEl(); if (!e) return;
+        const m = /^(?:error(?:\[E\d+\])?:|thread '[^']*' panicked at)/m.exec(e.textContent);
+        if (!m) { e.scrollTop = 0; return; }
+        const w = document.createTreeWalker(e, NodeFilter.SHOW_TEXT);
+        let at = m.index, n;
+        while ((n = w.nextNode()) && at >= n.length) at -= n.length; // char offset → its text node
+        if (!n) return;
+        const rg = document.createRange(); rg.setStart(n, at); rg.setEnd(n, at + 1);
+        const cs = getComputedStyle(e);
+        const want = e.scrollTop + rg.getBoundingClientRect().top - e.getBoundingClientRect().top
+          - parseFloat(cs.paddingTop);
+        // A panic is usually the LAST thing printed, with too little below it to
+        // reach the top: the view stopped at the end with the warnings' help text
+        // above the panic. Add just enough room below to scroll past the end.
+        const short = want - (e.scrollHeight - e.clientHeight);
+        if (short > 0) e.style.paddingBottom = (parseFloat(cs.paddingBottom) + short) + 'px';
+        e.scrollTop = want;
+      },
     };
     const refit = () => {}; // no canvas to fit
 
@@ -2203,7 +2231,7 @@
     // rustc (via an installed Termux) and calls this back asynchronously.
     let termuxPending = null;
     let termuxOp = 'run'; // which op fired the pending Termux call (run/check/test/explain)
-    let termuxCode = ''; // the code a pending on-device Explain asked about (for its status)
+    let termuxCode = ''; // the code a pending on-device Explain asked about (titles the drawer)
     const _runCbs = new Map(); // cbId -> onResult, for runnable code examples (free-play)
     window.__termuxResult = async function (cbId, res) {
       // A runnable code example (lesson/book) — route to its callback and STOP,
@@ -2216,6 +2244,14 @@
       if (cbId !== termuxPending) return; // ignore stale/duplicate
       termuxPending = null;
       res = res || {};
+      // On-device Explain opens in the same drawer as the local-server path (see
+      // showExplanation) and leaves the console alone. The bridge plainly works,
+      // so drop any stale setup / bridge-error card. A failed call still lands below.
+      if (termuxOp === 'explain' && res.exit === 0 && !res.errmsg) {
+        hideTermuxSetup(); hideRunError();
+        showExplanation(termuxCode, res.stdout);
+        return;
+      }
       expandTerminal();
       term.clear();
       const text = (res.stdout || '') + (res.stderr || '');
@@ -2250,6 +2286,7 @@
       statusEl().textContent = passed ? (termuxOp === 'check' ? 'type-checks ✓' : 'ran on-device ✓') : 'failed (on-device)';
       try { setInsights(true); } catch (_) {}
       renderTutor(passed, ''); // Termux output is raw (no parsed code) → by-hand phrasing
+      if (!passed) term.scrollToFirstError(); // open on the first error line, not the verdict
       // Record the outcome to the local store — the mobile WRITE-path that fixes
       // the lockout (passing now marks Done + advances). Refresh the list/current
       // from the seam. Advance on a passing run/test, never on check/explain.
@@ -2310,8 +2347,12 @@
       btns.forEach(x=>x && (x.disabled=true));
       statusEl().textContent = op + '…';
       expandTerminal(); // output is coming — unfold the phone's collapsed terminal
-      term.clear();
-      term.writeln(d('$ ' + op + ' — running on the local server…'));
+      // Explain opens in the drawer (see below) and leaves the console — the error
+      // the learner is asking about — as it was.
+      if (op !== 'explain') {
+        term.clear();
+        term.writeln(d('$ ' + op + ' — running on the local server…'));
+      }
       try {
         const payload = Object.assign({ op }, extra || {});
         // Compile the learner's edited buffer (not the on-disk starter) for run/check/test.
@@ -2322,20 +2363,27 @@
         });
         if (!res.ok) {
           const msg = await res.text();
+          // A rejected lookup answers in the drawer too, not over the error it is about.
+          if (op === 'explain') { showExplanation(extra.code, msg, false); return; }
           term.clear();
           term.writeln(r('request rejected') + ' (' + res.status + '): ' + msg);
           statusEl().textContent = 'error';
           return;
         }
         const out = await res.json();
+        // Explain is REFERENCE text, not a run. rustc --explain prints its write-up
+        // as raw Markdown (``` fences and all); dumped into the console it sat
+        // pinned to its END under a "✓ passed" verdict. Read it in the drawer,
+        // top first, and keep it out of lastOut / Diagnostics / the run verdict.
+        if (op === 'explain') {
+          showExplanation(extra.code, out.passed ? out.raw_stdout : out.raw_stderr || out.raw_stdout, out.passed);
+          return;
+        }
+        lastOut = out; // remember for tier re-render (see setMode)
         term.clear();
         // Raw bytes carry ANSI from the toolchain — write verbatim, no recolor.
         if (out.raw_stdout) term.write(out.raw_stdout.replace(/\n/g,'\r\n'));
         if (out.raw_stderr) term.write(out.raw_stderr.replace(/\n/g,'\r\n'));
-        // Explain's `passed` only means the lookup worked: no verdict, and it must not
-        // replace the last run (lastOut, Diagnostics, codes, Tutor) — see explainDone.
-        if (op === 'explain') { term.writeln(''); explainDone(out.passed, (extra && extra.code) || ''); return; }
-        lastOut = out; // remember for tier re-render (see setMode)
         runCodes = errorCodesIn((out.raw_stderr || '') + '\n' + (out.raw_stdout || '')); // Explain (?) offers these
         const verdict = out.passed
           ? g('✓ passed') + d(' in ' + out.duration_ms + 'ms')
@@ -2357,6 +2405,9 @@
         // Gate ONCE per exercise (Paul): the prediction persists after a run, so
         // Run stays unlocked for edit-and-rerun; it only re-arms on the NEXT
         // exercise (loadCurrent). The verdict above stays as feedback.
+        // A failed run opens on its FIRST error line. Done last: opening the
+        // Insights pane (above) narrows the console, re-wrapping its lines.
+        if (!out.passed) term.scrollToFirstError();
         statusEl().textContent = out.passed ? 'passed' : 'failed';
         // Refresh the list/gauge/attempts after every run; if a pass advanced
         // the learner, load the next exercise into the editor.
@@ -2387,7 +2438,9 @@
           // server). Result arrives async at window.__termuxResult. If Termux
           // isn't installed, guide the one-time setup.
           let termuxOk = false; try { termuxOk = AndroidSeam.termuxInstalled(); } catch (_) {}
-          term.clear();
+          // An on-device Explain opens in the drawer as well, so it leaves the
+          // console (the error being explained) as it was.
+          if (op !== 'explain' || !termuxOk) term.clear();
           if (termuxOk) {
             termuxOp = op;
             // For explain, the stdin payload is the DIAGNOSTIC CODE (E0382…),
@@ -2401,8 +2454,9 @@
             termuxCode = op === 'explain' ? stdin : '';
             statusEl().textContent = op === 'explain' ? 'explaining on-device…'
               : op === 'check' ? 'type-checking on-device…' : 'compiling on-device…';
-            term.writeln(d('$ ' + op + (op === 'explain' ? ' — rustc --explain ' + stdin
-              : op === 'check' ? ' — type-checking' : ' — compiling') + ' on-device with native rustc (Termux)…'));
+            if (op === 'explain') termuxCode = stdin; // titles the drawer the write-up opens in
+            else term.writeln(d('$ ' + op + (op === 'check' ? ' — type-checking' : ' — compiling')
+              + ' on-device with native rustc (Termux)…'));
             termuxPending = 'r' + Date.now();
             // Pass the op so Check does a fast type-check (rustc --emit=metadata, no run).
             try { AndroidSeam.runViaTermux(stdin, termuxPending, op); }
@@ -4007,6 +4061,7 @@
       document.getElementById('lessonDrawerTitle').textContent = 'Lesson';
       const full = document.getElementById('lessonDrawerFull');
       if (full) full.onclick = e => { e.preventDefault(); closeLessonDrawer(); showView('lessons', lessonId); };
+      if (full) full.hidden = false; // an Explain write-up hides it (showExplanation)
       body.innerHTML = '<p style="color:var(--fg-dim)">loading the lesson…</p>';
       ov.hidden = false; dr.hidden = false; dr.setAttribute('aria-hidden', 'false');
       requestAnimationFrame(() => { dr.classList.add('open'); ov.classList.add('open'); });
@@ -4033,9 +4088,37 @@
       const dr = document.getElementById('lessonDrawer');
       const ov = document.getElementById('lessonDrawerOverlay');
       if (!dr || dr.hidden) return;
+      // An explanation took keyboard focus (showExplanation): hand it back to what
+      // opened it, before aria-hidden lands on the drawer around it.
+      if (dr._opener && dr._opener.isConnected) dr._opener.focus({ preventScroll: true });
+      dr._opener = null;
       dr.classList.remove('open'); ov.classList.remove('open'); dr.setAttribute('aria-hidden', 'true');
       const done = () => { dr.hidden = true; ov.hidden = true; dr.removeEventListener('transitionend', done); };
       dr.addEventListener('transitionend', done);
+    }
+    // Explain → the same drawer, as reading text. `rustc --explain` prints raw
+    // Markdown when piped (``` fences and all); render it like a lesson
+    // (mdToHtml), opened at the TOP — the console only ever showed its tail.
+    // ANSI colour / CRs are dropped first, in case a bridge passed them through.
+    // ok=false: the lookup failed, so show the tool's own message instead. Focus
+    // moves into the write-up (arrows / PgDn read it; Esc hands focus back).
+    function showExplanation(code, text, ok = true) {
+      const dr = document.getElementById('lessonDrawer');
+      const ov = document.getElementById('lessonDrawerOverlay');
+      const body = document.getElementById('lessonDrawerBody');
+      if (!dr || !ov || !body) return;
+      const md = ok ? String(text || '')
+        : "Couldn't get an explanation for **" + code + '**:\n\n```\n' + String(text || '').trim() + '\n```';
+      document.getElementById('lessonDrawerTitle').textContent = code + ' — what this error means';
+      const full = document.getElementById('lessonDrawerFull');
+      if (full) full.hidden = true; // "full view" opens a lesson page; an explanation has none
+      body.innerHTML = '<div class="bookbody">' + mdToHtml(md.replace(/\x1b\[[0-9;]*m|\r/g, '')) + '</div>';
+      if (!dr.contains(document.activeElement)) dr._opener = document.activeElement; // see closeLessonDrawer
+      ov.hidden = false; dr.hidden = false; dr.setAttribute('aria-hidden', 'false');
+      requestAnimationFrame(() => { dr.classList.add('open'); ov.classList.add('open'); });
+      body.scrollTop = 0;
+      body.focus({ preventScroll: true });
+      statusEl().textContent = ok ? 'explained ' + code : 'explain failed';
     }
 
     // ── Glossary tap-to-define: make beginner jargon in lesson prose tappable to
