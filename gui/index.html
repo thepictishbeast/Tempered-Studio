@@ -4345,8 +4345,7 @@
       if (full) full.hidden = false; // an Explain write-up hides it (showExplanation)
       body.innerHTML = '<p style="color:var(--fg-dim)">loading the lesson…</p>';
       if (!dr.contains(document.activeElement)) dr._opener = document.activeElement; // see closeLessonDrawer
-      ov.hidden = false; dr.hidden = false; dr.setAttribute('aria-hidden', 'false');
-      requestAnimationFrame(() => { dr.classList.add('open'); ov.classList.add('open'); });
+      slideDrawerIn(dr, ov);
       // The drawer comes BEFORE <main> in the DOM, so Tab from the link or pull tab
       // that opened it went on through the page under the overlay. Move focus in,
       // as an explanation does (arrows / PgDn read it; Esc hands focus back).
@@ -4381,9 +4380,35 @@
       const at = document.activeElement;
       if ((!at || at === document.body || dr.contains(at)) && dr._opener && dr._opener.isConnected) dr._opener.focus({ preventScroll: true });
       dr._opener = null;
+      // A close can land before the opening frame (Esc at once): cancel that frame,
+      // or it re-opens the drawer after this close.
+      cancelAnimationFrame(dr._slideIn || 0); dr._slideIn = 0;
       dr.classList.remove('open'); ov.classList.remove('open'); dr.setAttribute('aria-hidden', 'true');
-      const done = () => { dr.hidden = true; ov.hidden = true; dr.removeEventListener('transitionend', done); };
+      // Hide once the slide-out ends. No slide runs if the drawer never got to open,
+      // so no transitionend comes: the timer is the backstop (the slide is .28s).
+      stopDrawerHide(dr); // a second close replaces the first one's pending hide
+      const done = (e) => {
+        if (e && e.target !== dr) return; // a child's transition, not the slide
+        dr.removeEventListener('transitionend', done);
+        stopDrawerHide(dr); dr.hidden = true; ov.hidden = true;
+      };
+      dr._hideDone = done;
       dr.addEventListener('transitionend', done);
+      dr._hideTimer = setTimeout(done, 450);
+    }
+    // Cancel a pending hide from an earlier close, so it can't hide the drawer
+    // when it is opened again before that close finished.
+    function stopDrawerHide(dr) {
+      if (dr._hideDone) dr.removeEventListener('transitionend', dr._hideDone);
+      clearTimeout(dr._hideTimer); dr._hideDone = null; dr._hideTimer = 0;
+    }
+    // Both openers (a lesson, an explanation) show the drawer, then slide it in on
+    // the next frame so the transition runs from its closed position.
+    function slideDrawerIn(dr, ov) {
+      stopDrawerHide(dr);
+      ov.hidden = false; dr.hidden = false; dr.setAttribute('aria-hidden', 'false');
+      cancelAnimationFrame(dr._slideIn || 0);
+      dr._slideIn = requestAnimationFrame(() => { dr._slideIn = 0; dr.classList.add('open'); ov.classList.add('open'); });
     }
     // Explain → the same drawer, as reading text. `rustc --explain` prints raw
     // Markdown when piped (``` fences and all); render it like a lesson
@@ -4403,8 +4428,7 @@
       if (full) full.hidden = true; // "full view" opens a lesson page; an explanation has none
       body.innerHTML = '<div class="bookbody">' + mdToHtml(md.replace(/\x1b\[[0-9;]*m|\r/g, '')) + '</div>';
       if (!dr.contains(document.activeElement)) dr._opener = document.activeElement; // see closeLessonDrawer
-      ov.hidden = false; dr.hidden = false; dr.setAttribute('aria-hidden', 'false');
-      requestAnimationFrame(() => { dr.classList.add('open'); ov.classList.add('open'); });
+      slideDrawerIn(dr, ov);
       body.scrollTop = 0;
       body.focus({ preventScroll: true });
       statusEl().textContent = ok ? 'explained' : 'explain ✗'; // short: see the on-device status
