@@ -202,7 +202,7 @@ mod tests {
         assert!(p.is_max);
         assert_eq!(p.level, MAX_LEVEL);
         assert_eq!(p.xp_span, 0);
-        assert_eq!(p.fraction(), 1.0);
+        assert!((p.fraction() - 1.0).abs() < f64::EPSILON);
     }
 
     #[test]

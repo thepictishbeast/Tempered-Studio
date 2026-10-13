@@ -1,0 +1,3 @@
+# False positive: minified vendored xterm.js (identifier text, not a key).
+# xterm.js is no longer loaded by gui/index.html; the finding is in history.
+f146177e4caa5dda267bc319db6e9b92f8b4257f:gui/vendor/xterm/xterm.js:generic-api-key:1
