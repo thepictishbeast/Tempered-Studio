@@ -561,3 +561,10 @@ definition = "A match guard is an extra `if` condition written after a pattern i
 book_chapter = ""
 source = "The Rust Book, ch.19.3 \"Pattern Syntax\" (Extra Conditionals with Match Guards)"
 
+[[term]]
+name = "lifetime elision"
+aliases = ["elision", "elided lifetime", "elision rules"]
+definition = "The rules that let you leave lifetime annotations out of a function's signature because the compiler can fill them in. The most common: when a function takes exactly one reference, any reference it returns is taken to borrow from that one input. Only when the rules can't decide, for example with two reference inputs and a reference output, do you have to write the lifetimes yourself."
+book_chapter = "ch10-03-lifetime-syntax"
+source = "The Rust Book, ch.10.3 \"Validating References with Lifetimes\" (Lifetime Elision)"
+

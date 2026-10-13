@@ -65,11 +65,12 @@ test.describe('Course start: Lesson 1 first, titles not ids', () => {
       .toHaveAttribute('data-id', 'advanced/04_operator_overload_add');
   });
 
-  // Lessons 33 (refutability), 33b (guards) and 29b (Deref & Drop) had no exercises.
+  // Lessons 33, 33b, 29b and 26b had no exercises.
   for (const [lesson, id] of [
     ['33-refutability', 'advanced/04b_refutable_parameter'],
     ['33b-guards-bindings-nested', 'advanced/04c_guards_not_counted'],
     ['29b-deref-drop', 'smart-pointers/06b_box_needs_star'],
+    ['26b-lifetime-elision', 'lifetimes/08b_elision_one_in_one_out'],
   ]) {
     test(`${lesson}'s Practice card opens ${id}`, async ({ page }) => {
       await page.goto('/');

@@ -1,0 +1,18 @@
+id = "lifetimes/08b_elision_one_in_one_out"
+title = "One reference in, one out: no annotation needed"
+difficulty = "intermediate"
+estimated_minutes = 5
+concept = "lifetime-elision"
+expected_error_code = "E0621"
+solution_outline = """
+The signature promises a result that lives for some `'a` that `label` was never
+tied to, so returning a piece of `label` breaks the promise (E0621). Adding `'a`
+to `label` as the compiler suggests (`label: &'a str`) works, but this function
+needs no annotation at all: with exactly one input reference, the elision rules
+give the output that input's lifetime. Write `fn tidy(label: &str) -> &str`.
+"""
+
+[[book_refs]]
+chapter = "ch10-03-lifetime-syntax"
+anchor = "lifetime-elision"
+why = "The elision rules: with one input reference, the output borrows from it, so you write no lifetimes."
