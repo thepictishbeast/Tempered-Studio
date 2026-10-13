@@ -1,0 +1,24 @@
+id = "advanced/04c_guards_not_counted"
+title = "Match guards don't count toward exhaustiveness"
+difficulty = "advanced"
+estimated_minutes = 5
+concept = "match-guard"
+expected_error_code = "E0004"
+solution_outline = """
+The compiler checks that a `match` covers every value without looking inside
+guard conditions, so the two guarded arms count for nothing and only the `0` arm
+is seen: every positive and every negative number is reported missing (E0004).
+End with an arm it can see: keep `n if n > 0 => "went up"` and `0 => "stayed the
+same"`, and make the last arm unguarded, `_ => "went down"`. Every value now has
+an arm, and the output is unchanged.
+"""
+
+[[book_refs]]
+chapter = "ch06-02-match"
+anchor = "matches-are-exhaustive"
+why = "Why a `match` must cover every possible value, and how the compiler reports the ones it can't see covered."
+
+[[book_refs]]
+chapter = "ch06-02-match"
+anchor = "catch-all-patterns-and-the-_-placeholder"
+why = "A final catch-all arm (`_` or a plain name) covers every value the earlier arms don't."

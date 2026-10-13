@@ -1,0 +1,19 @@
+id = "advanced/04b_refutable_parameter"
+title = "A function parameter's pattern must always match"
+difficulty = "advanced"
+estimated_minutes = 5
+concept = "refutable-pattern"
+expected_error_code = "E0005"
+solution_outline = """
+A parameter's pattern has to match every argument a caller could pass, because a
+call has nowhere else to go. `Some(level)` can fail (the argument might be
+`None`), so the compiler rejects it (E0005, pattern `None` not covered). Take the
+whole value as a plain name and handle both cases inside the function:
+`fn announce(reading: Option<u8>)` with a `match` (or `if let ... else`) that
+prints the level for `Some(level)` and "Battery level unknown" for `None`.
+"""
+
+[[book_refs]]
+chapter = "ch06-02-match"
+anchor = "the-optiont-match-pattern"
+why = "Handling an `Option<T>` with a `match` that has an arm for `Some` and an arm for `None`: the path a pattern that can fail needs."

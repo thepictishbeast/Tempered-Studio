@@ -64,4 +64,18 @@ test.describe('Course start: Lesson 1 first, titles not ids', () => {
     await expect(page.locator('#docview .practicelink').first())
       .toHaveAttribute('data-id', 'advanced/04_operator_overload_add');
   });
+
+  // Lessons 33 (refutability) and 33b (guards) had no exercises.
+  for (const [lesson, id] of [
+    ['33-refutability', 'advanced/04b_refutable_parameter'],
+    ['33b-guards-bindings-nested', 'advanced/04c_guards_not_counted'],
+  ]) {
+    test(`${lesson}'s Practice card opens ${id}`, async ({ page }) => {
+      await page.goto('/');
+      await page.waitForSelector('#exlist .ex[data-id]');
+      await page.evaluate((l) => showView('lessons', l), lesson);
+      await page.waitForSelector('#docview .lessonpractice .practicelink');
+      await expect(page.locator('#docview .practicelink').first()).toHaveAttribute('data-id', id);
+    });
+  }
 });

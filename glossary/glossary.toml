@@ -546,3 +546,18 @@ aliases = ["Cargo", "cargo new", "cargo run", "Cargo.toml"]
 definition = "Cargo is Rust's build tool and package manager — the command you use to start, build, run, and test a project. `cargo new name` lays out a project the standard way, `cargo run` compiles and runs it, and `cargo test` runs its tests. It reads a `Cargo.toml` file that lists the project's name and its dependencies (other people's crates), fetching and building them for you."
 book_chapter = ""
 source = "The Rust Book, ch.1.3 \"Hello, Cargo!\" (and The Cargo Book)"
+
+[[term]]
+name = "refutability"
+aliases = ["refutable pattern", "irrefutable pattern", "refutable", "irrefutable"]
+definition = "Whether a pattern can fail to match. An irrefutable pattern matches every possible value, like a plain name or a pair `(a, b)`; a refutable pattern can fail, like `Some(x)`, which does not match `None`. Places that have no way to handle a value that doesn't match (a plain `let`, a `for` loop, a function's parameters) accept only irrefutable patterns."
+book_chapter = ""
+source = "The Rust Book, ch.19.2 \"Refutability: Whether a Pattern Might Fail to Match\""
+
+[[term]]
+name = "match guard"
+aliases = ["guard", "guards", "match guards"]
+definition = "A match guard is an extra `if` condition written after a pattern in a `match` arm, as in `n if n > 0 =>`: the arm runs only when the pattern matches AND the condition is true. When the compiler checks that a `match` covers every possible value, it does not look inside guard conditions, so arms with guards don't count toward that check."
+book_chapter = ""
+source = "The Rust Book, ch.19.3 \"Pattern Syntax\" (Extra Conditionals with Match Guards)"
+
