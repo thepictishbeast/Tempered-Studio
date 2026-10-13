@@ -43,4 +43,14 @@ test.describe('Course start: Lesson 1 first, titles not ids', () => {
     await expect(page.locator('#docview .practicelink').first())
       .toHaveAttribute('data-id', 'basics/02b_mut_keeps_its_type');
   });
+
+  // Lesson 22c (pub structs keep their fields private) had no exercise either.
+  test("Lesson 22c's Practice card opens its constructor exercise", async ({ page }) => {
+    await page.goto('/');
+    await page.waitForSelector('#exlist .ex[data-id]');
+    await page.evaluate(() => showView('lessons', '22c-pub-structs-enums'));
+    await page.waitForSelector('#docview .lessonpractice .practicelink');
+    await expect(page.locator('#docview .practicelink').first())
+      .toHaveAttribute('data-id', 'modules/03b_pub_struct_constructor');
+  });
 });

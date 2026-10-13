@@ -1,0 +1,19 @@
+id = "modules/03b_pub_struct_constructor"
+title = "A `pub struct` keeps its fields private: give it a constructor"
+difficulty = "beginner"
+estimated_minutes = 6
+concept = "private-struct-field"
+expected_error_code = "E0451"
+solution_outline = """
+`pub struct Locker` makes the type public, but `pin` has no `pub`, so code outside
+`gym` can't fill it in, and a struct literal in `main` must fill every field
+(E0451). Keep `pin` private and add a public constructor inside `impl Locker`:
+`pub fn new(number: u32, pin: u32) -> Locker { Locker { number, pin } }`. Then
+build it with `gym::Locker::new(12, 4821)`. Code in the same module may set private
+fields; outside code goes through the constructor.
+"""
+
+[[book_refs]]
+chapter = "ch07-03-paths-for-referring-to-an-item-in-the-module-tree"
+anchor = "making-structs-and-enums-public"
+why = "The Book's Breakfast example: a `pub struct` with a private field can only be built through a public associated function."
